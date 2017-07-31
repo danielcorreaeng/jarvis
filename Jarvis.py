@@ -369,6 +369,24 @@ class Commands():
 
 			return True
 			
+		elif(command == 'help'):
+			print "Hum... Let me try : "
+			print " <tag0> <tag1> : i execute the code what it have <tag0> <tag1>."
+			
+			print " record <tag0> <tag1> : i try open editor code and i will record it with tags."
+			print " read <file> <tag0> <tag1> : give me a file and i record with <tag0> <tag1>. "
+			print " find <tag0> : i try find in my memory <tag0>."
+			print " findAll <tag0> : i try find in my memory <tag0> and in my others lives too."
+			print " forget <tag0> : i forget <tag>... I think this."
+			print " "
+			print " <tag0> <tag1> -base=<base>: i execute the code what it have tags from <base>."
+			print " <tag0> <tag1> -display=true: i execute the code using the program display."
+			print " <tag0> <tag1> -program=<program>: i execute the code using other program."
+			print " "
+			print " bot blablabla.: i will speek with you."
+						
+			return True
+			
 		elif(command == 'read' and parameters!=None):
 
 			localFile = None
@@ -386,6 +404,7 @@ class Commands():
 				print "Hey your record is ok."
 
 			return True
+			
 		elif(command == 'find'or command == 'list'):
 
 			_command = self.myDb.SelectListTagsLike(parameters)
@@ -404,6 +423,7 @@ class Commands():
 
 				#hide other user #todo: create protection between user
 				if(_dbtarget.find(GetHostname())>=0):
+					#if(_dbtarget.find(GetUsername())<0):
 					continue
 				
 				if(_dbtarget=='log'):
@@ -417,6 +437,34 @@ class Commands():
 				print(" " + _dbtarget)				
 					
 			return True
+			
+		elif(command == 'findAll'or command == 'listAll'):
+
+			for _dbtarget in glob.glob(GetPathDB() + "\\*.db"):	
+				_dbtarget = os.path.basename(_dbtarget)			
+				_dbtarget = _dbtarget.replace('.db','')
+
+				#hide other user #todo: create protection between user
+				if(_dbtarget.find(GetHostname())>=0):
+					if(_dbtarget.find(GetUsername())<0):
+						continue
+				
+				if(_dbtarget=='log'):
+					continue
+
+				dbParameters = MyDb.Parameters()
+				dbParameters.db = dbParameters.path  + "\\" + _dbtarget + ".db"
+					
+				self.myDb = MyDb(dbParameters)
+				_command = self.myDb.SelectListTagsLike(parameters)
+				
+				if(len(_command)>0):
+					print "Hey. I find : "
+					for row in _command:
+						print " " + row + " -base=" + _dbtarget				
+					
+			return True
+			
 		elif(command == 'delete'or command == 'forget'):
 
 			_command = self.myDb.DeleteCommandFromTag(parameters)
@@ -427,6 +475,7 @@ class Commands():
 				print "Hum... Sorry, this order didnt find in my memory."
 					
 			return True			
+			
 		elif(command == 'save' or command == 'record' and parameters!=None and sys.platform == 'win32'):
 
 			_command = self.myDb.SelectCommandFromTag(parameters)
