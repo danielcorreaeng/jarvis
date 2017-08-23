@@ -29,6 +29,7 @@ Python_Linux/*
 Output/*
 Aiml/*
 Db/temp/*
+temp/*
 *.bat
 *.db
 unins000.dat

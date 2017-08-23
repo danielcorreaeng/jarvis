@@ -148,7 +148,7 @@ class MyDb():
 			db = self.dbParameters.db
 			conn = sqlite3.connect(db)
 			cursor = conn.cursor()
-
+			
 			with open(inputFileBin, "rb") as input_file:
 				ablob = input_file.read()
 				cursor.execute("insert or replace into tag (id, name, command) values ((select id from tag where name = '"+ tag +"'),'"+ tag +"', ?)", [sqlite3.Binary(ablob)])
@@ -375,8 +375,10 @@ class Commands():
 			
 			print " record <tag0> <tag1> : i try open editor code and i will record it with tags."
 			print " read <file> <tag0> <tag1> : give me a file and i record with <tag0> <tag1>. "
+			print " white <file> <tag0> <tag1> : i save the code in <file>."
 			print " find <tag0> : i try find in my memory <tag0>."
 			print " findAll <tag0> : i try find in my memory <tag0> and in my others lives too."
+			print " copyTo <base> <tag0> : i copy <tag0> to <base>."			
 			print " forget <tag0> : i forget <tag>... I think this."
 			print " "
 			print " <tag0> <tag1> -base=<base>: i execute the code what it have tags from <base>."
@@ -402,6 +404,71 @@ class Commands():
 			if(os.path.isfile(localFile) == True):
 				self.myDb.InsertTagWithFile(_parameters, localFile)
 				print "Hey your record is ok."
+
+			return True
+			
+		elif(command == 'write' and parameters!=None):
+
+			localFile = None
+
+			localFile = parameters[0:parameters.index(" ")]
+
+			print "file : " + localFile
+
+			_command = parameters[parameters.index(" ")+1:]
+
+			print "tags : " + _command
+
+			_command = self.myDb.SelectCommandFromTag(_command)
+
+			if(_command != None):
+
+				fileTest = open(localFile,"wb")
+				fileTest.write(_command)
+				fileTest.close()
+				
+				print "Ok. File save in " + localFile
+
+			else:
+				print "Ops. I did not find commands in this tags."
+
+			return True
+			
+		elif(command == 'copyTo' and parameters!=None):
+
+			dbTarget = parameters[0:parameters.index(" ")]
+
+			print "dbTarget : " + dbTarget
+
+			_tags = parameters[parameters.index(" ")+1:]
+
+			print "tags : " + _tags
+
+			_command = self.myDb.SelectCommandFromTag(_tags)
+
+			if(_command != None):
+
+				fileTest = open(localFile,"wb")
+				fileTest.write(_command)
+				fileTest.close()
+				
+				if(os.path.isfile(localFile) == True):									
+					if(dbTarget != None):
+						dbParameters = MyDb.Parameters()
+						dbParameters.db = dbParameters.path  + "\\" + dbTarget + ".db"
+							
+						self.myDb = MyDb(dbParameters)
+						self.myDb.CheckDb()
+						
+						self.myDb.InsertTagWithFile(_tags, localFile)	
+					
+				if(os.path.isfile(localFile) == True):
+				   os.remove(localFile)
+				
+				print "Ok. Save " + _tags + " in " + dbTarget		
+
+			else:
+				print "Ops. I did not find commands in this tags."
 
 			return True
 			
@@ -439,7 +506,8 @@ class Commands():
 			return True
 			
 		elif(command == 'findAll'or command == 'listAll'):
-
+			
+			_dbChecked = False
 			for _dbtarget in glob.glob(GetPathDB() + "\\*.db"):	
 				_dbtarget = os.path.basename(_dbtarget)			
 				_dbtarget = _dbtarget.replace('.db','')
@@ -459,7 +527,11 @@ class Commands():
 				_command = self.myDb.SelectListTagsLike(parameters)
 				
 				if(len(_command)>0):
-					print "Hey. I find : "
+					if(_dbChecked == False):
+						print(" ")
+						print "Hey. I find : "
+						_dbChecked = True					
+					
 					for row in _command:
 						print " " + row + " -base=" + _dbtarget				
 					
