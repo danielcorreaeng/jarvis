@@ -340,7 +340,24 @@ class Commands():
     def __del__(self):
         pass
 
-    def DoCommand(self, command, parameters=None):
+		
+    def DoCommand(self, command):
+	
+		if(self._DoCommand(command) == True):
+			return True
+
+		_command = command.split(" ")
+
+		for i in range(len(_command)-1,0,-1):
+			_localParameters = " ".join(_command[i:])
+			_localCommand = " ".join(_command[0:i])
+			
+			if(self._DoCommand(_localCommand, _localParameters) == True):
+				return True
+				
+		return False
+	
+    def _DoCommand(self, command, parameters=None):
 
 		if os.path.exists (self.parameters.pathOutput)== False:
 			os.mkdir (self.parameters.pathOutput ) 
@@ -349,6 +366,9 @@ class Commands():
 
 		localFile = self.parameters.pathOutput + GetLocalFile()
 
+		#print command
+		#print parameters
+		
 		_command = self.myDb.SelectCommandFromTag(command)
 
 		if(_command != None):
@@ -603,15 +623,8 @@ class Commands():
 
 			return True
 
-		_command = command.split(" ")
 
-		if(len(_command)<=1):
-			return False
-
-		_command = command.split(" ")[0]
-		_parameters = command[command.index(" ")+1:]
-
-		return self.DoCommand(_command, _parameters)
+		return False
 
 def main(argv):
 	if(len(argv)<=0):
