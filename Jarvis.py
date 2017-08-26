@@ -398,7 +398,7 @@ class Commands():
 			print " white <file> <tag0> <tag1> : i save the code in <file>."
 			print " find <tag0> : i try find in my memory <tag0>."
 			print " findAll <tag0> : i try find in my memory <tag0> and in my others lives too."
-			print " copyTo <base> <tag0> : i copy <tag0> to <base>."			
+			print " copy <base> <tag0> : i copy <tag0> to <base>."			
 			print " forget <tag0> : i forget <tag>... I think this."
 			print " "
 			print " <tag0> <tag1> -base=<base>: i execute the code what it have tags from <base>."
@@ -454,7 +454,7 @@ class Commands():
 
 			return True
 			
-		elif(command == 'copyTo' and parameters!=None):
+		elif(command == 'copy' and parameters!=None):
 
 			dbTarget = parameters[0:parameters.index(" ")]
 
