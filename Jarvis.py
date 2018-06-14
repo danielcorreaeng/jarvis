@@ -9,7 +9,6 @@ import socket, select
 import aiml
 import time
 import threading
-import urllib2
 import requests
 import getpass
 import json
@@ -25,6 +24,7 @@ if sys.platform == 'win32':
 	PathOutput = PathLocal + "\\Output\\"
 	PyCommandDisplay = PathLocal + "\\Python_Win\\Python-Portable.exe"
 	PyCommand = PathLocal + "\\Python_Win\\App\\python.exe"
+	#PyCommand = "py"
 	PyScripter = PathLocal + "\\Python_Win\\PyScripter-Portable.exe"
 	PathBot = PathLocal + "\\Aiml\\"
 elif sys.platform == 'linux2':
@@ -208,13 +208,14 @@ class MyDb():
 		return result
 
 class JarvisUtils():
-    def __init__(self):
-        self.log = False
+	def __init__(self):
+		self.log = False
 
-    def LogFuction(self):
+	def LogFuction(self):
 		try:
-			ret = urllib2.urlopen('http://127.0.0.1:8800')
-			if ret.code == 200:
+			request = requests.get('http://127.0.0.1:8800')
+			
+			if request.status_code == 200:
 				print("Hey. Log is online, honey.")
 				id = GetLocalFile().replace("_", "").replace(".py", "")
 				
@@ -243,11 +244,11 @@ class JarvisUtils():
 		except:
 			pass
 
-    def LogThread(self):
-	threadLog = threading.Thread(target=self.LogFuction, args=())
-	threadLog.start()		
+	def LogThread(self):
+		threadLog = threading.Thread(target=self.LogFuction, args=())
+		threadLog.start()		
 
-    def _Run(self,command, parameters=None):
+	def _Run(self,command, parameters=None):
 		result = False
 		proc = None
 		self.log = True
@@ -270,7 +271,7 @@ class JarvisUtils():
 		return result
 
 
-    def AimlInitialize(self, sessionId):
+	def AimlInitialize(self, sessionId):
 		os.chdir(GetPathBot())
 
 		#python aiml 0.8.6 - https://pypi.python.org/pypi/aiml/0.8.6
@@ -292,7 +293,7 @@ class JarvisUtils():
 		self._aiml.setPredicate("name", GetUsername(), sessionId)
 		self._aiml.setPredicate("bot name", GetBotNameForIntelligentResponse(), sessionId)
 
-    def AimlChat(self, message, sessionId=12345):
+	def AimlChat(self, message, sessionId=12345):
 		if os.path.exists (GetPathBot())== False:
 			result = "Sorry Tiger, I lost my identity. hum... Am I Doris?"
 			return result
@@ -310,39 +311,38 @@ class JarvisUtils():
 			os.remove(brain)
 			result = "My memory is clean."
 		else:
-			#print "[input] : " + message #debug
+			#print("[input] : ") + message #debug
 			bot_response = self._aiml.respond(message,sessionId)
 			result = bot_response
 
 		return result
 
 class Commands():
-    class Parameters():
-        def __init__(self):
-            self.LoadVars()
+	class Parameters():
+		def __init__(self):
+			self.LoadVars()
 
-            self.dbParameters = None
-            self.path = GetPathLocal()
-            self.pathOutput = GetPathOutput()
-            self.pyCommand = GetPyCommand()
-            self.pyScripter = GetPyScripter()
-            pass
+			self.dbParameters = None
+			self.path = GetPathLocal()
+			self.pathOutput = GetPathOutput()
+			self.pyCommand = GetPyCommand()
+			self.pyScripter = GetPyScripter()
+			pass
 
-        def LoadVars(self):
-            pass
+		def LoadVars(self):
+			pass
 
-    def __init__(self, parameters):
-        self.parameters = Commands.Parameters()
-        self.parameters = parameters
-        self.myDb = MyDb(self.parameters.dbParameters)
-        #self.myDb.CheckDb() #debug
+	def __init__(self, parameters):
+		self.parameters = Commands.Parameters()
+		self.parameters = parameters
+		self.myDb = MyDb(self.parameters.dbParameters)
+		#self.myDb.CheckDb() #debug
 
-    def __del__(self):
-        pass
+	def __del__(self):
+		pass
 
 		
-    def DoCommand(self, command):
-	
+	def DoCommand(self, command):
 		if(self._DoCommand(command) == True):
 			return True
 
@@ -356,8 +356,8 @@ class Commands():
 				return True
 				
 		return False
-	
-    def _DoCommand(self, command, parameters=None):
+
+	def _DoCommand(self, command, parameters=None):
 
 		if os.path.exists (self.parameters.pathOutput)== False:
 			os.mkdir (self.parameters.pathOutput ) 
@@ -365,10 +365,7 @@ class Commands():
 		jv = JarvisUtils()
 
 		localFile = self.parameters.pathOutput + GetLocalFile()
-
-		#print command
-		#print parameters
-		
+	
 		_command = self.myDb.SelectCommandFromTag(command)
 
 		if(_command != None):
@@ -390,22 +387,22 @@ class Commands():
 			return True
 			
 		elif(command == 'help'):
-			print "Hum... Let me try : "
-			print " <tag0> <tag1> : i execute the code what it have <tag0> <tag1>."
-			
-			print " record <tag0> <tag1> : i try open editor code and i will record it with tags."
-			print " read <file> <tag0> <tag1> : give me a file and i record with <tag0> <tag1>. "
-			print " white <file> <tag0> <tag1> : i save the code in <file>."
-			print " find <tag0> : i try find in my memory <tag0>."
-			print " findAll <tag0> : i try find in my memory <tag0> and in my others lives too."
-			print " copy <base> <tag0> : i copy <tag0> to <base>."			
-			print " forget <tag0> : i forget <tag>... I think this."
-			print " "
-			print " <tag0> <tag1> -base=<base>: i execute the code what it have tags from <base>."
-			print " <tag0> <tag1> -display=true: i execute the code using the program display."
-			print " <tag0> <tag1> -program=<program>: i execute the code using other program."
-			print " "
-			print " bot blablabla.: i will speek with you."
+			print("Hum... Let me try : ")
+			print(" <tag0> <tag1> : i execute the code what it have <tag0> <tag1>.")
+
+			print(" record <tag0> <tag1> : i try open editor code and i will record it with tags.")
+			print(" read <file> <tag0> <tag1> : give me a file and i record with <tag0> <tag1>. ")
+			print(" white <file> <tag0> <tag1> : i save the code in <file>.")
+			print(" find <tag0> : i try find in my memory <tag0>.")
+			print(" findAll <tag0> : i try find in my memory <tag0> and in my others lives too.")
+			print(" copy <base> <tag0> : i copy <tag0> to <base>.")
+			print(" forget <tag0> : i forget <tag>... I think this.")
+			print(" ")
+			print(" <tag0> <tag1> -base=<base> : i execute the code what it have tags from <base>.")
+			print(" <tag0> <tag1> -display=true : i execute the code using the program display.")
+			print(" <tag0> <tag1> -program=<program> : i execute the code using other program.")
+			print(" ")
+			print(" bot blablabla. : i will speek with you.")
 						
 			return True
 			
@@ -415,15 +412,15 @@ class Commands():
 
 			localFile = parameters[0:parameters.index(" ")]
 
-			print "file : " + localFile
+			print("file : " + localFile)
 
 			_parameters = parameters[parameters.index(" ")+1:]
 
-			print "tags : " + _parameters
+			print("tags : " + _parameters)
 
 			if(os.path.isfile(localFile) == True):
 				self.myDb.InsertTagWithFile(_parameters, localFile)
-				print "Hey your record is ok."
+				print("Hey your record is ok.")
 
 			return True
 			
@@ -433,11 +430,11 @@ class Commands():
 
 			localFile = parameters[0:parameters.index(" ")]
 
-			print "file : " + localFile
+			print("file : " + localFile)
 
 			_command = parameters[parameters.index(" ")+1:]
 
-			print "tags : " + _command
+			print("tags : " + _command)
 
 			_command = self.myDb.SelectCommandFromTag(_command)
 
@@ -447,10 +444,10 @@ class Commands():
 				fileTest.write(_command)
 				fileTest.close()
 				
-				print "Ok. File save in " + localFile
+				print("Ok. File save in " + localFile)
 
 			else:
-				print "Ops. I did not find commands in this tags."
+				print("Ops. I did not find commands in this tags.")
 
 			return True
 			
@@ -458,11 +455,11 @@ class Commands():
 
 			dbTarget = parameters[0:parameters.index(" ")]
 
-			print "dbTarget : " + dbTarget
+			print("dbTarget : " + dbTarget)
 
 			_tags = parameters[parameters.index(" ")+1:]
 
-			print "tags : " + _tags
+			print("tags : " + _tags)
 
 			_command = self.myDb.SelectCommandFromTag(_tags)
 
@@ -485,10 +482,10 @@ class Commands():
 				if(os.path.isfile(localFile) == True):
 				   os.remove(localFile)
 				
-				print "Ok. Save " + _tags + " in " + dbTarget		
+				print("Ok. Save " + _tags + " in " + dbTarget)
 
 			else:
-				print "Ops. I did not find commands in this tags."
+				print("Ops. I did not find commands in this tags.")
 
 			return True
 			
@@ -497,11 +494,11 @@ class Commands():
 			_command = self.myDb.SelectListTagsLike(parameters)
 
 			if(len(_command)>0):
-				print "Hey. I find : "
+				print("Hey. I find : ")
 				for row in _command:
-					print " " + row
+					print(" " + row)
 			else:
-				print "Hum... Sorry, this order didnt find in my memory."
+				print("Hum... Sorry, this order didnt find in my memory.")
 
 			_dbChecked = False
 			for _dbtarget in glob.glob(GetPathDB() + "\\*.db"):	
@@ -549,11 +546,11 @@ class Commands():
 				if(len(_command)>0):
 					if(_dbChecked == False):
 						print(" ")
-						print "Hey. I find : "
+						print("Hey. I find : ")
 						_dbChecked = True					
 					
 					for row in _command:
-						print " " + row + " -base=" + _dbtarget				
+						print(" " + row + " -base=" + _dbtarget)		
 					
 			return True
 			
@@ -562,9 +559,9 @@ class Commands():
 			_command = self.myDb.DeleteCommandFromTag(parameters)
 
 			if(_command == True):
-				print "Ok ok... I forgot that."
+				print("Ok ok... I forgot that.")
 			else:
-				print "Hum... Sorry, this order didnt find in my memory."
+				print("Hum... Sorry, this order didnt find in my memory.")
 					
 			return True			
 			
@@ -572,9 +569,12 @@ class Commands():
 
 			_command = self.myDb.SelectCommandFromTag(parameters)
 
-			fileTest = open(localFile,"wb")
+			fileTest = None
 				
 			if(_command == None):
+			
+				fileTest = open(localFile,"w")
+				
 				_command = "import time\n"
 				_command = _command + "import sys,os\n"
 				_command = _command + "import subprocess\n"
@@ -607,8 +607,11 @@ class Commands():
 				_command = _command + "\tMain()\n"
 				_command = _command + "\t\n"
 				_command = _command + "\tparam = ' '.join(sys.argv[1:])\n"
-				_command = _command + "\tprint 'param ' + param\n"
+				_command = _command + "\tprint('param ' + param)\n"
 				_command = _command + "\ttime.sleep(3)\n\n"
+
+			else:
+				fileTest = open(localFile,"wb")
 
 			fileTest.write(_command)
 			fileTest.close()
@@ -616,7 +619,7 @@ class Commands():
 			jv._Run(self.parameters.pyScripter + " " + localFile)
 
 			self.myDb.InsertTagWithFile(parameters, localFile)
-			print "Hey your record is ok."
+			print("Hey your record is ok.")
 
 			if(os.path.isfile(localFile) == True):
 				os.remove(localFile)
@@ -628,7 +631,7 @@ class Commands():
 
 def main(argv):
 	if(len(argv)<=0):
-		print "Hello! What could I do for you??"
+		print("Hello! What could I do for you??")
 		return False
 
 	_jv = JarvisUtils()
@@ -640,7 +643,7 @@ def main(argv):
 
 		msg = ' '.join(argv[1:])
 		bot_response = _jv.AimlChat(msg)
-		print bot_response
+		print(bot_response)
 
 		argv = argv[1:]
 
@@ -686,7 +689,7 @@ def main(argv):
 
 	if(displayCommand == True):
 		parameters.pyCommand =  str(GetPyCommandDisplay())
-		print "Set : " + str(GetPyCommandDisplay())
+		print("Set : " + str(GetPyCommandDisplay()))
 
 	dbParameters = MyDb.Parameters()
 	if(dbTarget != None):
@@ -701,7 +704,7 @@ def main(argv):
 	result = result and obj.DoCommand(command)
 
 	if(result == False):
-		print "Sorry, this order didnt find in my memory."
+		print("Sorry, this order didnt find in my memory.")
 
 	return result
 
