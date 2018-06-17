@@ -22,10 +22,19 @@ if sys.platform == 'win32':
 	PathLocal = "C:\\Jarvis"
 	PathDB = PathLocal + "\\Db\\"
 	PathOutput = PathLocal + "\\Output\\"
+	
 	PyCommandDisplay = PathLocal + "\\Python_Win\\Python-Portable.exe"
+	#PyCommand = "py"
+	#PyCommand = "jupyter notebook"
+	
 	PyCommand = PathLocal + "\\Python_Win\\App\\python.exe"
 	#PyCommand = "py"
+	#PyCommand = "jupyter notebook"
+	
 	PyScripter = PathLocal + "\\Python_Win\\PyScripter-Portable.exe"
+	#PyScripter = "spyder3"
+	#PyScripter = "jupyter notebook"
+	
 	PathBot = PathLocal + "\\Aiml\\"
 elif sys.platform == 'linux2':
 	PathLocal = "/home/dani/workspace/jarvis"
@@ -39,7 +48,7 @@ elif sys.platform == 'linux2':
 BotNameForIntelligentResponse = "bot"
 LocalUsername = getpass.getuser().replace(' ','_')
 LocalHostname = socket.gethostname().replace(' ','_')
-LocalFile = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + "_" + str(randint(0, 999)) + ".py"
+LocalFile = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + "_" + str(randint(0, 999)) + ".py" #".ipynb" #".py"
 LastCommand = ''
 
 def GetPathLocal():
@@ -176,14 +185,9 @@ class MyDb():
 			else:
 				cursor.execute("SELECT name FROM tag")
 
-			rows = cursor.fetchall()
-
-			if(len(rows) > 0):
-				temp = list(zip(*rows)[0])
-
-			for row in temp:
-				result.append(str(row))
-
+			for row in cursor.fetchall():
+				result.append(str(row[0]))
+			
 			conn.close()
 		except:
 			raise MyException("MyDb : SelectListTagsLike : Internal Error.")
