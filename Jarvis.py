@@ -377,7 +377,7 @@ class JarvisSSH():
 
 		st_out = stdout.read()
 		#print(st_out)
-
+		st_out = str(st_out)
 		if st_out.find('File save') != -1:
 			print('remote : ok')
 		elif st_out.find('not find') != -1:
@@ -426,7 +426,7 @@ class JarvisSSH():
 
 		st_out = stdout.read()
 		#print(st_out)
-		
+		st_out = str(st_out)		
 		if st_out.find('record is ok') != -1:
 			print('remote : record ok')
 		else:
@@ -920,7 +920,7 @@ def main(argv):
 
 		for item in itens:
 			stringItem = "-" + str(item[0]) + "=" + str(item[1])
-			print(stringItem)
+			#print(stringItem)
 			argv.insert( 1, stringItem)
 
 	for idArg in range(0,len(argv)):
