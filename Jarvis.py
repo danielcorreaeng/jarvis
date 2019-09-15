@@ -25,26 +25,22 @@ else:
 
 #MIT License 2017 danielcorreaeng <danielcorrea.eng@gmail.com>
 
-if sys.platform == 'win32':
-	PathLocal = "C:\\Jarvis"
-	PathDB = PathLocal + "\\Db\\"
-	PathOutput = PathLocal + "\\Output\\"
+PathLocal = "C:\\Jarvis"
+PathDB = PathLocal + "\\Db\\"
+PathOutput = PathLocal + "\\Output\\"
 
-	PyCommandDisplay = PathLocal + "\\Python_Win\\Python-Portable.exe"
-	#PyCommandDisplay = "py"
+PyCommand = PathLocal + "\\Python_Win\\App\\python.exe"
+#PyCommand = "py"
 
-	PyCommand = PathLocal + "\\Python_Win\\App\\python.exe"
-	#PyCommand = "py"
+PyScripter = PathLocal + "\\Python_Win\\PyScripter-Portable.exe"
+#PyScripter = "spyder3"
 
-	PyScripter = PathLocal + "\\Python_Win\\PyScripter-Portable.exe"
-	#PyScripter = "spyder3"
+PathBot = PathLocal + "\\Aiml\\"
 
-	PathBot = PathLocal + "\\Aiml\\"
-elif sys.platform == 'linux2':
+if sys.platform == 'linux2':
 	PathLocal = "/home/jarvis/workspace/jarvis"
 	PathOutput = PathLocal + "/Output/"
 	PathDB = PathLocal + "/Db/"
-	PyCommandDisplay = "python"
 	PyCommand = "python"
 	PyScripter = "notepadqq"
 	PathBot = PathLocal + "/Aiml/"
@@ -55,6 +51,7 @@ LocalUsername = getpass.getuser().replace(' ','_')
 LocalHostname = socket.gethostname().replace(' ','_')
 LastCommand = ''
 LoggerIp = '127.0.0.1:8800'
+ProgramDisplayOut = False
 
 def GetPathLocal():
     return PathLocal
@@ -67,9 +64,6 @@ def GetPathOutput():
 
 def GetPyCommand():
     return PyCommand
-
-def GetPyCommandDisplay():
-    return PyCommandDisplay
 
 def GetPyScripter():
     return PyScripter
@@ -98,6 +92,9 @@ def GetLoggerIp():
 	
 def GetLastCommand():
 	return LastCommand
+	
+def GetProgramDisplayOut():
+	return ProgramDisplayOut
 
 
 class MyException(Exception):
@@ -111,6 +108,7 @@ class MyDb():
 		def __init__(self):
 			self.path = GetPathDB()
 			self.db = self.path  + GetHostname() + "_" + GetUsername() + ".db"
+			self.changed = False
 			pass
 
 	def __init__(self, dbParameters):
@@ -194,16 +192,17 @@ class MyDb():
 			cursor = conn.cursor()
 
 			if(name!=None):
-				cursor.execute("SELECT name FROM tag WHERE name LIKE '%" + name + "%'")
+				cursor.execute("SELECT name, command FROM tag WHERE name LIKE '%" + name + "%'")
 			else:
-				cursor.execute("SELECT name FROM tag")
+				cursor.execute("SELECT name, command FROM tag")
 
 			for row in cursor.fetchall():
-				result.append(str(row[0]))
-
+				result.append([str(row[0]), row[1]])
+				
 			conn.close()
 		except:
-			raise MyException("MyDb : SelectListTagsLike : Internal Error.")
+			#raise MyException("MyDb : SelectListTagsLike : Internal Error.")
+			pass
 
 		return result
 
@@ -257,36 +256,37 @@ class JarvisUtils():
 				requests.post(url, data=json.dumps(data), headers=headers)
 
 			else:
-				pass
+				print('else')
 		except:
+			print('exception')
 			pass
 
 	def LogThread(self):
 		threadLog = threading.Thread(target=self.LogFuction, args=())
 		threadLog.start()
 
-	def _Run(self,command, parameters=None):
-		result = False
+	def _Run(self,command, recLog=True):
+		result = None
 		proc = None
 		self.log = True
-		self.LogThread()
+		
+		if(recLog==True):
+			self.LogThread()
 
 		try:
-			if(parameters != None):
-				proc = subprocess.Popen([command, parameters], stdout=subprocess.PIPE, shell=True)
-			else:
-				proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+			proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
 
 			(out, err) = proc.communicate()
 
-			if(out.find("False") < 0 and out.find("NOK") < 0):
-				result = True
+			result = out
+
+			if(len(out)>0 and GetProgramDisplayOut()==True):
+				print(out)				
 		except:
 			pass
 
 		self.log = False
 		return result
-
 
 	def AimlInitialize(self, sessionId):
 		os.chdir(GetPathBot())
@@ -514,7 +514,7 @@ class Commands():
 			print(" read <file> <tag0> <tag1> : give me a file and i record with <tag0> <tag1>. ")
 			print(" write <file> <tag0> <tag1> : i save the code in <file>.")
 			print(" find <tag0> : i try find in my memory <tag0>.")
-			print(" findAll <tag0> : i try find in my memory <tag0> and in my others lives too.")
+			print(" list <tag0> : i try find in my memory <tag0> and describes.")
 			print(" copy <base> <tag0> : i copy <tag0> to <base>.")
 			print(" forget <tag0> : i forget <tag>... I think this.")
 			print(" ")
@@ -609,46 +609,19 @@ class Commands():
 
 			return True
 
-		elif(command == 'find'or command == 'list'):
-
-			_command = self.myDb.SelectListTagsLike(parameters)
-
-			if(len(_command)>0):
-				print("Hey. I find : ")
-				for row in _command:
-					print(" " + row)
-			else:
-				print("Hum... Sorry, this order didnt find in my memory.")
+		elif(command == 'find' or command == 'list'):
 
 			_dbChecked = False
 			for _dbtarget in glob.glob(GetPathDB() + "\\*.db"):
-				_dbtarget = os.path.basename(_dbtarget)
-				_dbtarget = _dbtarget.replace('.db','')
+				
+				if(self.myDb.dbParameters.changed == False):										
+					dbParameters = MyDb.Parameters()
+					dbParameters.db = _dbtarget
+					self.myDb = MyDb(dbParameters)
 
-				#hide other user #todo: create protection between user
-				if(_dbtarget.find(GetHostname())>=0):
-					#if(_dbtarget.find(GetUsername())<0):
-					continue
-
-				if(_dbtarget=='log'):
-					continue
-
-				if(_dbChecked == False):
-					print(" ")
-					print("See through my other lives too : -base=<name>")
-					_dbChecked = True
-
-				print(" " + _dbtarget)
-
-			return True
-
-		elif(command == 'findAll'or command == 'listAll'):
-
-			_dbChecked = False
-			for _dbtarget in glob.glob(GetPathDB() + "\\*.db"):
-				_dbtarget = os.path.basename(_dbtarget)
-				_dbtarget = _dbtarget.replace('.db','')
-
+				_dbtarget = os.path.basename(self.myDb.dbParameters.db)
+				_dbtarget = _dbtarget.replace('.db','')		
+					
 				#hide other user #todo: create protection between user
 				if(_dbtarget.find(GetHostname())>=0):
 					if(_dbtarget.find(GetUsername())<0):
@@ -656,21 +629,78 @@ class Commands():
 
 				if(_dbtarget=='log'):
 					continue
+				
+				rows  = self.myDb.SelectListTagsLike(parameters)
 
-				dbParameters = MyDb.Parameters()
-				dbParameters.db = dbParameters.path  + "\\" + _dbtarget + ".db"
-
-				self.myDb = MyDb(dbParameters)
-				_command = self.myDb.SelectListTagsLike(parameters)
-
-				if(len(_command)>0):
+				if(len(rows)>0):
 					if(_dbChecked == False):
-						print(" ")
 						print("Hey. I find : ")
 						_dbChecked = True
 
-					for row in _command:
-						print(" " + row + " -base=" + _dbtarget)
+					for row in rows:
+						_name, _command = row
+						describe = ''
+						
+						if(command == 'list'):						
+							if(str(_command).find('print(Main.__doc__)')>=0):
+								fileTest = open(localFile,"wb")
+								fileTest.write(_command)
+								fileTest.close()
+
+								_prog = self.parameters.pyCommand + " " + localFile
+
+								if(parameters!=None):
+									_prog = _prog + " " + parameters
+
+								out = jv._Run(_prog + ' -h', False)
+
+								if(os.path.isfile(localFile) == True):
+								   os.remove(localFile)
+								   pass
+
+								describe = '-->' + str(out.split('\n')[0].replace('\n',''))
+
+						if(GetHostname() + "_" + GetUsername() == _dbtarget):
+							print(" " + _name+ " " + describe)
+						else:
+							print(" " + _name + " -base=" + _dbtarget + " " + describe)
+
+				if(self.myDb.dbParameters.changed == True):
+					break
+
+			if(_dbChecked == False):
+				print("Hum... Sorry, this order didnt find in my memory.")
+
+
+			return True
+
+		elif(command == 'execute all'):
+
+			rows  = self.myDb.SelectListTagsLike(parameters)
+
+			if(len(rows)>0):
+
+				for row in rows:
+					_name, _command = row
+					describe = ''
+					
+					if(str(_command).find('print(Main.__doc__)')>=0):
+						fileTest = open(localFile,"wb")
+						fileTest.write(_command)
+						fileTest.close()
+
+						_prog = self.parameters.pyCommand + " " + localFile
+
+						if(parameters!=None):
+							_prog = _prog + " " + parameters
+
+						out = jv._Run(_prog, False)
+
+						if(os.path.isfile(localFile) == True):
+						   os.remove(localFile)
+						   pass
+
+						print(" " + _name)
 
 			return True
 
@@ -847,30 +877,25 @@ class Commands():
 			_command = _command + "\telse:\n"
 			_command = _command + "\t\tproc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)\n"
 			_command = _command + "\n"
-			_command = _command + "def RunJarvis(tags):\n"
-			_command = _command + "\tpythonPath='C:\\Jarvis\\Python_Win\\App\\python.exe'\n"
-			_command = _command + "\tjarvisPath='C:\\Jarvis\\Jarvis.py'\n"
-			_command = _command + "\tif sys.platform == 'linux2':\n"
-			_command = _command + "\t\tpythonPath='python'\n"
-			_command = _command + "\t\tjarvisPath='/var/jarvis/Jarvis.py'\n"
-			_command = _command + "\tRun(pythonPath + ' ' + jarvisPath + ' ' + tags)\n"
-			_command = _command + "\n"
 			_command = _command + "def OpenFolder(path):\n"
 			_command = _command + "\tif sys.platform == 'win32':\n"
 			_command = _command + "\t\tRun('explorer.exe', path)\n"
 			_command = _command + "\n"
 			_command = _command + "def Main(): \n"
-			_command = _command + "\tOpenFolder('C:\\Jarvis')\n"
-			_command = _command + "\t#Run('Calc')\n"
-			_command = _command + "\t#Run('C:\Program Files (x86)\Google\Chrome\Application\chrome.exe','-incognito www.google.com.br')\n"
-			_command = _command + "\t#RunJarvis('calc')\n"
+			_command = _command + "\t'''No describe'''\n"	
+			_command = _command + "\tOpenFolder(r'C:\Windows')\n"
+			_command = _command + "\t#Run(r'Calc')\n"
+			_command = _command + "\t#Run(r'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe','-incognito www.google.com.br')\n"
 			_command = _command + "\t\n"
 			_command = _command + "if __name__ == '__main__':\n"
+			_command = _command + "\tif(len(sys.argv) > 1):\n"
+			_command = _command + "\t\tif(sys.argv[len(sys.argv)-1] == '-h' or sys.argv[len(sys.argv)-1] == 'help'):\n"
+			_command = _command + "\t\t\tprint(Main.__doc__)\n"
+			_command = _command + "\t\t\texit()\n"
 			_command = _command + "\tMain()\n"
 			_command = _command + "\t\n"
 			_command = _command + "\tparam = ' '.join(sys.argv[1:])\n"
 			_command = _command + "\tprint('param ' + param)\n"
-			_command = _command + "\ttime.sleep(3)\n\n"		
 			
 		return _command
 def main(argv):
@@ -906,6 +931,7 @@ def main(argv):
 	global ExtensionFile
 	global PyCommand
 	global PyScripter
+	global ProgramDisplayOut
 
 	fileConfiName = GetPathLocal() + "\\config.ini"
 	if(os.path.isfile(fileConfiName)):
@@ -920,7 +946,6 @@ def main(argv):
 
 		for item in itens:
 			stringItem = "-" + str(item[0]) + "=" + str(item[1])
-			#print(stringItem)
 			argv.insert( 1, stringItem)
 
 	for idArg in range(0,len(argv)):
@@ -942,6 +967,7 @@ def main(argv):
 				PyScripter = 'spyder3'
 			else:
 				PyScripter = PyCommand
+			print('pyCommand : ' + PyCommand)
 			
 		stringArg = '-extension='
 		if(argv[idArg].find(stringArg) >= 0):
@@ -951,7 +977,8 @@ def main(argv):
 		stringArg = '-display=true'
 		if(argv[idArg].find(stringArg) >= 0):
 			idTarget.append(idArg)
-			displayCommand = True
+			ProgramDisplayOut = True
+			print("display : true")			
 
 		stringArg = '-remotehostname='
 		if(argv[idArg].find(stringArg) >= 0):
@@ -991,13 +1018,10 @@ def main(argv):
 	parameters = Commands.Parameters()
 	parameters.sshParameters = jarvisSSHParameters
 
-	if(displayCommand == True):
-		parameters.pyCommand =  str(GetPyCommandDisplay())
-		print("Set : " + str(GetPyCommandDisplay()))
-
 	dbParameters = MyDb.Parameters()
 	if(dbTarget != None):
 		dbParameters.db = dbParameters.path  + "\\" + dbTarget + ".db"
+		dbParameters.changed = True
 
 	db = MyDb(dbParameters)
 	parameters.dbParameters = dbParameters
