@@ -31,11 +31,11 @@ globalParameter['PathLocal'] = "C:\\Jarvis"
 globalParameter['PathDB'] = globalParameter['PathLocal']  + "\\Db\\"
 globalParameter['PathOutput'] = globalParameter['PathLocal']  + "\\Output\\"
 
-globalParameter['PyCommand'] = globalParameter['PathLocal']  + "\\Python_Win\\App\\python.exe"
-#globalParameter['PyCommand'] = "py"
+#globalParameter['PyCommand'] = globalParameter['PathLocal']  + "\\Python_Win\\App\\python.exe"
+globalParameter['PyCommand'] = "py"
 
-globalParameter['PyScripter'] = globalParameter['PathLocal']  + "\\Python_Win\\PyScripter-Portable.exe"
-#globalParameter['PyScripter'] = "spyder3"
+#globalParameter['PyScripter'] = globalParameter['PathLocal']  + "\\Python_Win\\PyScripter-Portable.exe"
+globalParameter['PyScripter'] = "spyder3"
 
 globalParameter['PathBot'] = globalParameter['PathLocal']  + "\\Aiml\\"
 
