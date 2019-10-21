@@ -4,8 +4,8 @@ import os.path
 import sys, os
 import subprocess
 import datetime
-import shutil, errno
-import socket, select
+#import shutil, errno
+import socket #,select
 import aiml
 import time
 import threading
@@ -14,9 +14,9 @@ import getpass
 import json
 import glob
 import paramiko
-import getpass
+#import getpass
 from random import randint
-from unicodedata import normalize
+#from unicodedata import normalize
 
 if (sys.version_info > (3, 0)):
 	from configparser import ConfigParser
@@ -25,77 +25,39 @@ else:
 
 #MIT License 2017 danielcorreaeng <danielcorrea.eng@gmail.com>
 
-PathLocal = "C:\\Jarvis"
-PathDB = PathLocal + "\\Db\\"
-PathOutput = PathLocal + "\\Output\\"
+globalParameter = {}
 
-PyCommand = PathLocal + "\\Python_Win\\App\\python.exe"
-#PyCommand = "py"
+globalParameter['PathLocal'] = "C:\\Jarvis"
+globalParameter['PathDB'] = globalParameter['PathLocal']  + "\\Db\\"
+globalParameter['PathOutput'] = globalParameter['PathLocal']  + "\\Output\\"
 
-PyScripter = PathLocal + "\\Python_Win\\PyScripter-Portable.exe"
-#PyScripter = "spyder3"
+globalParameter['PyCommand'] = globalParameter['PathLocal']  + "\\Python_Win\\App\\python.exe"
+#globalParameter['PyCommand'] = "py"
 
-PathBot = PathLocal + "\\Aiml\\"
+globalParameter['PyScripter'] = globalParameter['PathLocal']  + "\\Python_Win\\PyScripter-Portable.exe"
+#globalParameter['PyScripter'] = "spyder3"
+
+globalParameter['PathBot'] = globalParameter['PathLocal']  + "\\Aiml\\"
 
 if sys.platform == 'linux2':
-	PathLocal = "/home/jarvis/workspace/jarvis"
-	PathOutput = PathLocal + "/Output/"
-	PathDB = PathLocal + "/Db/"
-	PyCommand = "python"
-	PyScripter = "notepadqq"
-	PathBot = PathLocal + "/Aiml/"
+	globalParameter['PathLocal'] = "/home/jarvis/workspace/jarvis"
+	globalParameter['PathOutput'] = globalParameter['PathLocal'] + "/Output/"
+	globalParameter['PathDB'] = globalParameter['PathLocal'] + "/Db/"
+	globalParameter['PyCommand'] = "python"
+	globalParameter['PyScripter'] = "notepadqq"
+	globalParameter['PathBot'] = globalParameter['PathLocal'] + "/Aiml/"
 
-ExtensionFile = ".py"
-BotNameForIntelligentResponse = "bot"
-LocalUsername = getpass.getuser().replace(' ','_')
-LocalHostname = socket.gethostname().replace(' ','_')
-LastCommand = ''
-LoggerIp = '127.0.0.1:8800'
-ProgramDisplayOut = False
-
-def GetPathLocal():
-    return PathLocal
-
-def GetPathDB():
-    return PathDB
-
-def GetPathOutput():
-    return PathOutput
-
-def GetPyCommand():
-    return PyCommand
-
-def GetPyScripter():
-    return PyScripter
-
-def GetBotNameForIntelligentResponse():
-    return BotNameForIntelligentResponse
-
-def GetPathBot():
-    return PathBot
-
-def GetUsername():
-	return LocalUsername
-
-def GetHostname():
-	return LocalHostname
-
-def GetExtensionFile():
-	return ExtensionFile
+globalParameter['ExtensionFile'] = ".py"
+globalParameter['BotNameForIntelligentResponse'] = "bot"
+globalParameter['LocalUsername'] = getpass.getuser().replace(' ','_')
+globalParameter['LocalHostname'] = socket.gethostname().replace(' ','_')
+globalParameter['LastCommand'] = ''
+globalParameter['LoggerIp'] = '127.0.0.1:8800'
+globalParameter['ProgramDisplayOut'] = False
 
 def GetLocalFile():
-	LocalFile = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + "_" + str(randint(0, 999)) + GetExtensionFile()
-	return LocalFile
-
-def GetLoggerIp():
-	return LoggerIp
-	
-def GetLastCommand():
-	return LastCommand
-	
-def GetProgramDisplayOut():
-	return ProgramDisplayOut
-
+	globalParameter['LocalFile'] = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + "_" + str(randint(0, 999)) + globalParameter['ExtensionFile']
+	return globalParameter['LocalFile']
 
 class MyException(Exception):
     def __init__(self, value):
@@ -106,8 +68,8 @@ class MyException(Exception):
 class MyDb():
 	class Parameters():
 		def __init__(self):
-			self.path = GetPathDB()
-			self.db = self.path  + GetHostname() + "_" + GetUsername() + ".db"
+			self.path = globalParameter['PathDB']
+			self.db = self.path  + globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] + ".db"
 			self.changed = False
 			pass
 
@@ -121,8 +83,8 @@ class MyDb():
 		result = False
 
 		try:
-			if os.path.exists (GetPathDB())== False:
-				os.mkdir (GetPathDB())
+			if os.path.exists (globalParameter['PathDB'])== False:
+				os.mkdir (globalParameter['PathDB'])
 
 			db = self.dbParameters.db
 
@@ -184,7 +146,6 @@ class MyDb():
 
 	def SelectListTagsLike(self,name):
 		result = []
-		temp = []
 
 		try:
 			db = self.dbParameters.db
@@ -214,7 +175,7 @@ class MyDb():
 			conn = sqlite3.connect(db)
 			cursor = conn.cursor()
 			sql = "DELETE FROM tag WHERE name='" + name + "'"
-			cursor.execute("DELETE FROM tag WHERE name='" + name + "'")
+			cursor.execute(sql)
 			conn.commit()
 			conn.close()
 		except:
@@ -229,30 +190,30 @@ class JarvisUtils():
 
 	def LogFuction(self):
 		try:
-			request = requests.get('http://' + GetLoggerIp())
+			request = requests.get('http://' + globalParameter['LoggerIp'])
 
 			if request.status_code == 200:
 				print("Hey. Log is online, honey.")
-				id = GetLocalFile().replace("_", "").replace(GetExtensionFile(), "")
+				id = GetLocalFile().replace("_", "").replace(globalParameter['ExtensionFile'], "")
 
 				data = []
 				localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
-				data.append({'id' : id , 'user' : GetUsername() , 'host' : GetHostname() , 'command' : GetLastCommand() , 'time' : localTime , 'status' : 'start'})
+				data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : globalParameter['LastCommand'] , 'time' : localTime , 'status' : 'start'})
 
-				url = "http://" + GetLoggerIp() + "/log"
+				url = "http://" + globalParameter['LoggerIp'] + "/log"
 				headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
 				requests.post(url, data=json.dumps(data), headers=headers)
 
 				while (self.log):
 					localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
 					data[:] = []
-					data.append({'id' : id , 'user' : GetUsername() , 'host' : GetHostname() , 'command' : GetLastCommand() , 'time' : localTime , 'status' : 'alive'})
+					data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : globalParameter['LastCommand'] , 'time' : localTime , 'status' : 'alive'})
 					requests.post(url, data=json.dumps(data), headers=headers)
 					time.sleep(2.0)
 
 				data[:] = []
 				localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
-				data.append({'id' : id , 'user' : GetUsername() , 'host' : GetHostname() , 'command' : GetLastCommand() , 'time' : localTime , 'status' : 'finish'})
+				data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : globalParameter['LastCommand'] , 'time' : localTime , 'status' : 'finish'})
 				requests.post(url, data=json.dumps(data), headers=headers)
 
 			else:
@@ -265,23 +226,23 @@ class JarvisUtils():
 		threadLog = threading.Thread(target=self.LogFuction, args=())
 		threadLog.start()
 
-	def _Run(self,command, recLog=True):
+	def _Run(self,command, activeLog=True, waitReturn=True):
 		result = None
 		proc = None
 		self.log = True
 		
-		if(recLog==True):
+		if(activeLog==True):
 			self.LogThread()
 
 		try:
-			proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
-
-			(out, err) = proc.communicate()
-
-			result = out
-
-			if(len(out)>0 and GetProgramDisplayOut()==True):
-				print(out)				
+			if(waitReturn==True):
+				proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+				(out, err) = proc.communicate()
+				result = out
+				if(len(out)>0 and globalParameter['ProgramDisplayOut']==True):
+					print(out)                
+			else:                
+				proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)		
 		except:
 			pass
 
@@ -289,7 +250,7 @@ class JarvisUtils():
 		return result
 
 	def AimlInitialize(self, sessionId):
-		os.chdir(GetPathBot())
+		os.chdir(globalParameter['PathBot'])
 
 		#python aiml 0.8.6 - https://pypi.python.org/pypi/aiml/0.8.6
 		self._aiml = aiml.Kernel()
@@ -306,12 +267,12 @@ class JarvisUtils():
 
 		#test default values #debug
 		self._aiml.setPredicate("dog", "Brandy", sessionId)
-		self._aiml.setPredicate("it", GetUsername(), sessionId)
-		self._aiml.setPredicate("name", GetUsername(), sessionId)
-		self._aiml.setPredicate("bot name", GetBotNameForIntelligentResponse(), sessionId)
+		self._aiml.setPredicate("it", globalParameter['LocalUsername'], sessionId)
+		self._aiml.setPredicate("name", globalParameter['LocalUsername'], sessionId)
+		self._aiml.setPredicate("bot name", globalParameter['BotNameForIntelligentResponse'], sessionId)
 
 	def AimlChat(self, message, sessionId=12345):
-		if os.path.exists (GetPathBot())== False:
+		if os.path.exists (globalParameter['PathBot'])== False:
 			result = "Sorry Tiger, I lost my identity. hum... Am I Doris?"
 			return result
 
@@ -356,7 +317,7 @@ class JarvisSSH():
 
 	def GetRemoteCommand(self, tags):
 		self.CheckPassword()
-		dest = GetPathOutput() + GetLocalFile()
+		dest = globalParameter['PyCommand'] + GetLocalFile()
 		source = self.parameters.remotePath + GetLocalFile()
 
 		client = paramiko.SSHClient()
@@ -439,17 +400,8 @@ class JarvisSSH():
 class Commands():
 	class Parameters():
 		def __init__(self):
-			self.LoadVars()
-
 			self.dbParameters = None
-			self.path = GetPathLocal()
-			self.pathOutput = GetPathOutput()
-			self.pyCommand = GetPyCommand()
-			self.pyScripter = GetPyScripter()
 			self.sshParameters = JarvisSSH.Parameters()
-			pass
-
-		def LoadVars(self):
 			pass
 
 	def __init__(self, parameters):
@@ -460,7 +412,6 @@ class Commands():
 
 	def __del__(self):
 		pass
-
 
 	def DoCommand(self, command):
 		if(self._DoCommand(command) == True):
@@ -479,12 +430,12 @@ class Commands():
 
 	def _DoCommand(self, command, parameters=None):
 
-		if os.path.exists (self.parameters.pathOutput)== False:
-			os.mkdir (self.parameters.pathOutput )
+		if os.path.exists (globalParameter['PathOutput'])== False:
+			os.mkdir (globalParameter['PathOutput'])
 
 		jv = JarvisUtils()
 
-		localFile = self.parameters.pathOutput + GetLocalFile()
+		localFile = globalParameter['PathOutput'] + GetLocalFile()
 
 		_command = self.myDb.SelectCommandFromTag(command)
 
@@ -494,7 +445,7 @@ class Commands():
 			fileTest.write(_command)
 			fileTest.close()
 
-			_prog = self.parameters.pyCommand + " " + localFile
+			_prog = globalParameter['PyCommand'] + " " + localFile
 
 			if(parameters!=None):
 				_prog = _prog + " " + parameters
@@ -612,7 +563,7 @@ class Commands():
 		elif(command == 'find' or command == 'list'):
 
 			_dbChecked = False
-			for _dbtarget in glob.glob(GetPathDB() + "\\*.db"):
+			for _dbtarget in glob.glob(globalParameter['PathDB'] + "\\*.db"):
 				
 				if(self.myDb.dbParameters.changed == False):										
 					dbParameters = MyDb.Parameters()
@@ -623,8 +574,8 @@ class Commands():
 				_dbtarget = _dbtarget.replace('.db','')		
 					
 				#hide other user #todo: create protection between user
-				if(_dbtarget.find(GetHostname())>=0):
-					if(_dbtarget.find(GetUsername())<0):
+				if(_dbtarget.find(globalParameter['LocalHostname'])>=0):
+					if(_dbtarget.find(globalParameter['LocalUsername'])<0):
 						continue
 
 				if(_dbtarget=='log'):
@@ -647,7 +598,7 @@ class Commands():
 								fileTest.write(_command)
 								fileTest.close()
 
-								_prog = self.parameters.pyCommand + " " + localFile
+								_prog = globalParameter['PyCommand'] + " " + localFile
 
 								if(parameters!=None):
 									_prog = _prog + " " + parameters
@@ -660,7 +611,7 @@ class Commands():
 
 								describe = '-->' + str(out.split('\n')[0].replace('\n',''))
 
-						if(GetHostname() + "_" + GetUsername() == _dbtarget):
+						if(globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] == _dbtarget):
 							print(" " + _name+ " " + describe)
 						else:
 							print(" " + _name + " -base=" + _dbtarget + " " + describe)
@@ -679,29 +630,33 @@ class Commands():
 			rows  = self.myDb.SelectListTagsLike(parameters)
 
 			if(len(rows)>0):
-
+				filelist = []
+                                
 				for row in rows:
 					_name, _command = row
 					describe = ''
 					
-					if(str(_command).find('print(Main.__doc__)')>=0):
-						fileTest = open(localFile,"wb")
-						fileTest.write(_command)
-						fileTest.close()
+					localFile = globalParameter['PathOutput']  + GetLocalFile()
+                    
+					fileTest = open(localFile,"wb")
+					fileTest.write(_command)
+					fileTest.close()
 
-						_prog = self.parameters.pyCommand + " " + localFile
+					_prog = globalParameter['PyCommand'] + " " + localFile
 
-						if(parameters!=None):
-							_prog = _prog + " " + parameters
+					out = jv._Run(_prog, False, False)
+                    
+					filelist.append(localFile)
 
-						out = jv._Run(_prog, False)
+					print(" " + _name)
+                    
+					time.sleep(1)
 
-						if(os.path.isfile(localFile) == True):
-						   os.remove(localFile)
-						   pass
-
-						print(" " + _name)
-
+				for _file in filelist:
+					if(os.path.isfile(_file) == True):
+					   os.remove(_file)
+					   pass
+                    
 			return True
 
 		elif(command == 'delete'or command == 'forget'):
@@ -723,7 +678,7 @@ class Commands():
 			if(localFile == None):
 				return True
 			
-			_prog = self.parameters.pyCommand + " " + localFile
+			_prog = globalParameter['PyCommand'] + " " + localFile
 
 			jv._Run(_prog)
 
@@ -752,7 +707,7 @@ class Commands():
 			
 		elif(command == 'remote send'):
 		
-			localFile = GetPathOutput() + GetLocalFile()
+			localFile = globalParameter['PyCommand'] + GetLocalFile()
 
 			print("file : " + localFile)
 			print("tags : " + parameters)
@@ -793,7 +748,7 @@ class Commands():
 				fileTest.write(_command)
 				fileTest.close()				
 
-			jv._Run(self.parameters.pyScripter + " " + localFile)
+			jv._Run(globalParameter['PyScripter'] + " " + localFile)
 
 			ssh = JarvisSSH(self.parameters.sshParameters)			
 			ssh.PutRemoteCommand(parameters, localFile)			
@@ -822,7 +777,7 @@ class Commands():
 			fileTest.write(_command)
 			fileTest.close()
 
-			jv._Run(self.parameters.pyScripter + " " + localFile)
+			jv._Run(globalParameter['PyScripter'] + " " + localFile)
 
 			self.myDb.InsertTagWithFile(parameters, localFile)
 			print("Hey your record is ok.")
@@ -830,41 +785,14 @@ class Commands():
 			if(os.path.isfile(localFile) == True):
 				os.remove(localFile)
 
-			return True
-			
-		elif(command == 'save' or command == 'record' and parameters!=None and sys.platform == 'win32'):
-
-			_command = self.myDb.SelectCommandFromTag(parameters)
-
-			fileTest = None
-
-			if(_command == None):
-
-				fileTest = open(localFile,"w")
-				_command = self.MakeCommandExemple()
-			else:
-				fileTest = open(localFile,"wb")
-
-			fileTest.write(_command)
-			fileTest.close()
-
-			jv._Run(self.parameters.pyScripter + " " + localFile)
-
-			self.myDb.InsertTagWithFile(parameters, localFile)
-			print("Hey your record is ok.")
-
-			if(os.path.isfile(localFile) == True):
-				os.remove(localFile)
-
-			return True
-
+			return True		
 
 		return False
 	
 	def MakeCommandExemple(self):
 		_command = None
 		
-		if(GetExtensionFile() == ".ipynb"):
+		if(globalParameter['ExtensionFile'] == ".ipynb"):
 			_command = '{\n "cells": [\n  {\n   "cell_type": "code",\n   "execution_count": null,\n   "metadata": {},\n   "outputs": [],\n   "source": []\n  }\n ],\n "metadata": {\n  "kernelspec": {\n   "display_name": "Python 3",\n   "language": "python",\n   "name": "python3"\n  },\n  "language_info": {\n   "codemirror_mode": {\n    "name": "ipython",\n    "version": 3\n   },\n   "file_extension": ".py",\n   "mimetype": "text/x-python",\n   "name": "python",\n   "nbconvert_exporter": "python",\n   "pygments_lexer": "ipython3",\n   "version": "3.6.5"\n  }\n },\n "nbformat": 4,\n "nbformat_minor": 2\n}\n'
 		else:
 			_command = "import time\n"
@@ -875,7 +803,7 @@ class Commands():
 			_command = _command + "\tif(parameters != None):\n"
 			_command = _command + "\t\tproc = subprocess.Popen([command, parameters], shell=True)\n"
 			_command = _command + "\telse:\n"
-			_command = _command + "\t\tproc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)\n"
+			_command = _command + "\t\tproc = subprocess.Popen(command, shell=True)\n"
 			_command = _command + "\n"
 			_command = _command + "def OpenFolder(path):\n"
 			_command = _command + "\tif sys.platform == 'win32':\n"
@@ -905,10 +833,9 @@ def main(argv):
 
 	_jv = JarvisUtils()
 
-	global LastCommand
-	LastCommand =  ' '.join(argv)
+	globalParameter['LastCommand'] =  ' '.join(argv)
 
-	if(argv[0].find(GetBotNameForIntelligentResponse())>=0):
+	if(argv[0].find(globalParameter['BotNameForIntelligentResponse'])>=0):
 
 		msg = ' '.join(argv[1:])
 		bot_response = _jv.AimlChat(msg)
@@ -925,15 +852,9 @@ def main(argv):
 
 	idTarget = []
 	dbTarget = None
-	displayCommand = False
 	jarvisSSHParameters = JarvisSSH.Parameters()
 	
-	global ExtensionFile
-	global PyCommand
-	global PyScripter
-	global ProgramDisplayOut
-
-	fileConfiName = GetPathLocal() + "\\config.ini"
+	fileConfiName = globalParameter['PathLocal'] + "\\config.ini"
 	if(os.path.isfile(fileConfiName)):
 
 		if (sys.version_info > (3, 0)):
@@ -945,8 +866,21 @@ def main(argv):
 		itens = fileConfig.items('Parameters')
 
 		for item in itens:
-			stringItem = "-" + str(item[0]) + "=" + str(item[1])
-			argv.insert( 1, stringItem)
+			itemFound=False
+			for globalParameter_key in globalParameter:    
+				if globalParameter_key.lower()==item[0].lower():
+					globalParameter[globalParameter_key]=item[1]
+					itemFound=True
+			if itemFound == False:
+				stringItem = "-" + str(item[0]) + "=" + str(item[1])
+				argv.insert( 1, stringItem)
+
+	for globalParameter_key in globalParameter:    
+		stringArg = '-' + globalParameter_key.lower() + '='
+		for idArg in range(0,len(argv)):
+			if(argv[idArg].find(stringArg) >= 0):
+				idTarget.append(idArg)
+				globalParameter[globalParameter_key] = argv[idArg][argv[idArg].find(stringArg)+len(stringArg):]
 
 	for idArg in range(0,len(argv)):
 		stringArg = '-base='
@@ -957,27 +891,27 @@ def main(argv):
 		stringArg = '-program='
 		if(argv[idArg].find(stringArg) >= 0):
 			idTarget.append(idArg)
-			PyCommand = argv[idArg][argv[idArg].find(stringArg)+len(stringArg):]
-			if(PyCommand == 'jupyter'):
-				PyCommand = 'jupyter notebook'
-				ExtensionFile = ".ipynb"
-				PyScripter = PyCommand
-			elif(PyCommand == 'spyder3'):
-				PyCommand = 'py'
-				PyScripter = 'spyder3'
+			globalParameter['PyCommand'] = argv[idArg][argv[idArg].find(stringArg)+len(stringArg):]
+			if(globalParameter['PyCommand'] == 'jupyter'):
+				globalParameter['PyCommand'] = 'jupyter notebook'
+				globalParameter['ExtensionFile'] = ".ipynb"
+				globalParameter['PyScripter'] = globalParameter['PyCommand']
+			elif(globalParameter['PyCommand'] == 'spyder3'):
+				globalParameter['PyCommand'] = 'py'
+				globalParameter['PyScripter'] = 'spyder3'
 			else:
-				PyScripter = PyCommand
-			print('pyCommand : ' + PyCommand)
+				globalParameter['PyScripter'] = globalParameter['PyCommand']
+			print('pyCommand : ' + globalParameter['PyCommand'])
 			
 		stringArg = '-extension='
 		if(argv[idArg].find(stringArg) >= 0):
 			idTarget.append(idArg)
-			ExtensionFile = argv[idArg][argv[idArg].find(stringArg)+len(stringArg):]
+			globalParameter['ExtensionFile']= argv[idArg][argv[idArg].find(stringArg)+len(stringArg):]
 
 		stringArg = '-display=true'
 		if(argv[idArg].find(stringArg) >= 0):
 			idTarget.append(idArg)
-			ProgramDisplayOut = True
+			globalParameter['ProgramDisplayOut'] = True
 			print("display : true")			
 
 		stringArg = '-remotehostname='
@@ -1002,13 +936,11 @@ def main(argv):
 
 		stringArg = '-user='
 		if(argv[idArg].find(stringArg) >= 0):
-			idTarget.append(idArg)
-			global LocalUsername
-			LocalUsername = argv[idArg][argv[idArg].find(stringArg)+len(stringArg):]
-			if(LocalUsername.find('@') >= 0):
-				global LocalHostname
-				LocalHostname = LocalUsername.split('@')[1]
-				LocalUsername = LocalUsername.split('@')[0]
+			idTarget.append(idArg)			
+			globalParameter['LocalUsername'] = argv[idArg][argv[idArg].find(stringArg)+len(stringArg):]
+			if(globalParameter['LocalUsername'].find('@') >= 0):				
+				globalParameter['LocalHostname'] = globalParameter['LocalUsername'].split('@')[1]
+				globalParameter['LocalUsername'] = globalParameter['LocalUsername'].split('@')[0]
 
 	for i in reversed(idTarget):
 		argv.pop(i)
