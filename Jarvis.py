@@ -6,7 +6,6 @@ import subprocess
 import datetime
 #import shutil, errno
 import socket #,select
-import aiml
 import time
 import threading
 import requests
@@ -48,12 +47,14 @@ if sys.platform == 'linux2':
 	globalParameter['PathBot'] = globalParameter['PathLocal'] + "/Aiml/"
 
 globalParameter['ExtensionFile'] = ".py"
-globalParameter['BotNameForIntelligentResponse'] = "bot"
+globalParameter['BotNameForIntelligentResponse'] = "mybot"
+globalParameter['BotIp'] = '127.0.0.1:8805'
 globalParameter['LocalUsername'] = getpass.getuser().replace(' ','_')
 globalParameter['LocalHostname'] = socket.gethostname().replace(' ','_')
 globalParameter['LastCommand'] = ''
-globalParameter['LoggerIp'] = '127.0.0.1:8800'
 globalParameter['ProgramDisplayOut'] = False
+globalParameter['LoggerIp'] = '127.0.0.1:8800'
+
 
 def GetLocalFile():
 	globalParameter['LocalFile'] = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + "_" + str(randint(0, 999)) + globalParameter['ExtensionFile']
@@ -215,11 +216,9 @@ class JarvisUtils():
 				localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
 				data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : globalParameter['LastCommand'] , 'time' : localTime , 'status' : 'finish'})
 				requests.post(url, data=json.dumps(data), headers=headers)
-
 			else:
-				print('else')
+				pass
 		except:
-			print('exception')
 			pass
 
 	def LogThread(self):
@@ -242,56 +241,32 @@ class JarvisUtils():
 				if(len(out)>0 and globalParameter['ProgramDisplayOut']==True):
 					print(out)                
 			else:                
-				proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)		
+				proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+				#proc = subprocess.Popen(command)		
 		except:
 			pass
 
 		self.log = False
 		return result
 
-	def AimlInitialize(self, sessionId):
-		os.chdir(globalParameter['PathBot'])
-
-		#python aiml 0.8.6 - https://pypi.python.org/pypi/aiml/0.8.6
-		self._aiml = aiml.Kernel()
-		self._aiml.verbose(False) #debug
-
-		memory = "std-startup.xml"
-		brain = "bot_brain.brn"
-
-		if os.path.isfile(brain):
-			 self._aiml.bootstrap(brainFile = brain)
-		else:
-			 self._aiml.bootstrap(learnFiles = memory, commands = "load aiml b")
-			 self._aiml.saveBrain(brain)
-
-		#test default values #debug
-		self._aiml.setPredicate("dog", "Brandy", sessionId)
-		self._aiml.setPredicate("it", globalParameter['LocalUsername'], sessionId)
-		self._aiml.setPredicate("name", globalParameter['LocalUsername'], sessionId)
-		self._aiml.setPredicate("bot name", globalParameter['BotNameForIntelligentResponse'], sessionId)
-
-	def AimlChat(self, message, sessionId=12345):
-		if os.path.exists (globalParameter['PathBot'])== False:
-			result = "Sorry Tiger, I lost my identity. hum... Am I Doris?"
-			return result
-
+	def ChatBot(self, message):
+		error = 'Hi! Sorry... No service now =('
+		result = error
 		try:
-			if(self._aiml is None):
-				self.AimlInitialize(sessionId)
-		except:
-			self.AimlInitialize(sessionId)
+			request = requests.get('http://' + globalParameter['BotIp'])
+			if request.status_code == 200:
+				localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
+				data = {'ask' : message , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : globalParameter['LastCommand'] , 'time' : localTime , 'status' : 'start'}
 
-		if message == "save":
-			self._aiml.saveBrain(brain)
-			result = "My memory is saved."
-		elif message == "clean":
-			os.remove(brain)
-			result = "My memory is clean."
-		else:
-			#print("[input] : ") + message #debug
-			bot_response = self._aiml.respond(message,sessionId)
-			result = bot_response
+				url = "http://" + globalParameter['BotIp'] + "/botresponse"
+				headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+				r = requests.post(url, data=json.dumps(data), headers=headers)
+				result = r.text
+			else:
+				result = error
+		except:
+			result = error
+			pass
 
 		return result
 
@@ -625,8 +600,9 @@ class Commands():
 
 			return True
 
-		elif(command == 'execute all'):
-
+		elif(command == 'execute all' and False):
+			"""Not implemented"""
+			"""
 			rows  = self.myDb.SelectListTagsLike(parameters)
 
 			if(len(rows)>0):
@@ -634,7 +610,6 @@ class Commands():
                                 
 				for row in rows:
 					_name, _command = row
-					describe = ''
 					
 					localFile = globalParameter['PathOutput']  + GetLocalFile()
                     
@@ -656,7 +631,7 @@ class Commands():
 					if(os.path.isfile(_file) == True):
 					   os.remove(_file)
 					   pass
-                    
+            """
 			return True
 
 		elif(command == 'delete'or command == 'forget'):
@@ -838,17 +813,11 @@ def main(argv):
 	if(argv[0].find(globalParameter['BotNameForIntelligentResponse'])>=0):
 
 		msg = ' '.join(argv[1:])
-		bot_response = _jv.AimlChat(msg)
+		bot_response = _jv.ChatBot(msg)
 		print(bot_response)
 
 		argv = argv[1:]
-
-		lastChar = ''
-		if(len(msg)-1>=0):
-			lastChar = msg[len(msg)-1]
-
-		if(lastChar == '.' or lastChar == '!' or lastChar == '?'):
-			return
+		return
 
 	idTarget = []
 	dbTarget = None
