@@ -15,7 +15,6 @@ import glob
 import paramiko
 #import getpass
 from random import randint
-#from unicodedata import normalize
 
 if (sys.version_info > (3, 0)):
 	from configparser import ConfigParser
@@ -38,7 +37,8 @@ globalParameter['PyScripter'] = "spyder3"
 
 globalParameter['PathBot'] = globalParameter['PathLocal']  + "\\Aiml\\"
 
-if sys.platform == 'linux2':
+testPlatform = "linux" in str(sys.platform)
+if testPlatform == True:
 	globalParameter['PathLocal'] = "/home/jarvis/workspace/jarvis"
 	globalParameter['PathOutput'] = globalParameter['PathLocal'] + "/Output/"
 	globalParameter['PathDB'] = globalParameter['PathLocal'] + "/Db/"
@@ -53,7 +53,7 @@ globalParameter['LocalUsername'] = getpass.getuser().replace(' ','_')
 globalParameter['LocalHostname'] = socket.gethostname().replace(' ','_')
 globalParameter['LastCommand'] = ''
 globalParameter['ProgramDisplayOut'] = False
-globalParameter['LoggerIp'] = '127.0.0.1:8800'
+globalParameter['LoggerIp'] = str(socket.gethostbyname(socket.gethostname())) +  ':8800'
 
 
 def GetLocalFile():
@@ -207,6 +207,7 @@ class JarvisUtils():
 
 				while (self.log):
 					localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
+					#print(localTime)
 					data[:] = []
 					data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : globalParameter['LastCommand'] , 'time' : localTime , 'status' : 'alive'})
 					requests.post(url, data=json.dumps(data), headers=headers)
