@@ -584,8 +584,8 @@ class Commands():
 								if(os.path.isfile(localFile) == True):
 								   os.remove(localFile)
 								   pass
-
-								describe = '-->' + str(out.split('\n')[0].replace('\n',''))
+								
+								describe = '-->' + str(str(str(out).split('\\n')[0]).replace('\n','').replace('\\r','').replace("b'",''))
 
 						if(globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] == _dbtarget):
 							print(" " + _name+ " " + describe)
