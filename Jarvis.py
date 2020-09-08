@@ -536,7 +536,7 @@ class Commands():
 
 			return True
 
-		elif(command == 'find' or command == 'list'):
+		elif(command == 'find' or command == 'list'or command == 'route'):
 
 			_dbChecked = False
 			for _dbtarget in glob.glob(globalParameter['PathDB'] + "\\*.db"):
@@ -567,12 +567,27 @@ class Commands():
 					for row in rows:
 						_name, _command = row
 						describe = ''
-						
-						if(command == 'list'):						
+						route = ''					
+
+						if(command == 'list' or command == 'route'):						
 							if(str(_command).find('print(Main.__doc__)')>=0):
 								fileTest = open(localFile,"wb")
 								fileTest.write(_command)
 								fileTest.close()
+								
+								targetText = 'RunJarvis('								
+								if(command == 'route' and str(_command).find(targetText)>=0):
+									fileTest = open(localFile, "r")
+									for line in fileTest:
+										if(line.find('def ' + targetText)>=0):
+											continue										
+
+										if(line.find(targetText)>=0):
+											start = line.find(targetText)
+											stop = line.find(')')
+											#print(line[start+len(targetText):stop])
+											route = route + '\troute:: ' + line[start+len(targetText):-2]  + '\n'
+									fileTest.close()	
 
 								_prog = globalParameter['PyCommand'] + " " + localFile
 
@@ -587,10 +602,17 @@ class Commands():
 								
 								describe = '-->' + str(str(str(out).split('\\n')[0]).replace('\n','').replace('\\r','').replace("b'",''))
 
+								if(command == 'route'):
+									describe = '\n\tdescribe:: ' + describe.replace('-->','')
+									if(route != ''):
+										describe = describe + '\n ' + route[0:-1]
+
 						if(globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] == _dbtarget):
 							print(" " + _name+ " " + describe)
 						else:
 							print(" " + _name + " -base=" + _dbtarget + " " + describe)
+						if(command == 'route'):
+							print("=======================================")						
 
 				if(self.myDb.dbParameters.changed == True):
 					break
