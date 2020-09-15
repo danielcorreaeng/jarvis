@@ -13,7 +13,7 @@ See also the list of [contributors](contributors.md) who participated in this pr
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
 ## Help
-Use Python 2.7
+Use Python 3.6.8
 
 In windows, i use python portable and i create a Jarvis.bat with:
 
