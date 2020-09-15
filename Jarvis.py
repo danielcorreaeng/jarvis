@@ -449,7 +449,7 @@ class Commands():
 			print(" <tag0> <tag1> -display=true : i execute the code using the program display.")
 			print(" <tag0> <tag1> -program=<program> : i execute the code using other program.")
 			print(" ")
-			print(" bot blablabla. : i will speek with you.")
+			print(" mybot blablabla. : i will speek with you.")
 
 			return True
 
