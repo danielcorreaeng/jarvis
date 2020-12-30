@@ -557,6 +557,9 @@ class Commands():
 				if(_dbtarget=='log'):
 					continue
 				
+				if(_dbtarget=='bkp' and self.myDb.dbParameters.changed == False):
+					continue
+
 				rows  = self.myDb.SelectListTagsLike(parameters)
 
 				if(len(rows)>0):
@@ -769,11 +772,26 @@ class Commands():
 
 				fileTest = open(localFile,"w")
 				_command = self.MakeCommandExemple()
+				fileTest.write(_command)
+				fileTest.close()
+
 			else:
 				fileTest = open(localFile,"wb")
+				fileTest.write(_command)
+				fileTest.close()
 
-			fileTest.write(_command)
-			fileTest.close()
+				#save bkp
+				if(os.path.isfile(localFile) == True):
+					dbParameters = MyDb.Parameters()
+					dbParameters.db = dbParameters.path  + "\\bkp.db"
+
+					bkpDb = MyDb(dbParameters)
+					bkpDb.CheckDb()
+
+					bkpParameters = parameters + " " + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + "_" + str(randint(0, 999))
+					bkpDb.InsertTagWithFile(bkpParameters, localFile)
+
+					print("Backup saved in tag '" + bkpParameters + "' in base 'bkp'")
 
 			jv._Run(globalParameter['PyScripter'] + " " + localFile)
 
