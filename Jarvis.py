@@ -12,7 +12,6 @@ import requests
 import getpass
 import json
 import glob
-import paramiko
 #import getpass
 from random import randint
 
@@ -25,26 +24,20 @@ else:
 
 globalParameter = {}
 
-globalParameter['PathLocal'] = "C:\\Jarvis"
+globalParameter['PathLocal'] = os.path.dirname(os.path.abspath(__file__))
 globalParameter['PathDB'] = globalParameter['PathLocal']  + "\\Db\\"
 globalParameter['PathOutput'] = globalParameter['PathLocal']  + "\\Output\\"
 
-#globalParameter['PyCommand'] = globalParameter['PathLocal']  + "\\Python_Win\\App\\python.exe"
 globalParameter['PyCommand'] = "py"
-
-#globalParameter['PyScripter'] = globalParameter['PathLocal']  + "\\Python_Win\\PyScripter-Portable.exe"
 globalParameter['PyScripter'] = "spyder3"
-
-globalParameter['PathBot'] = globalParameter['PathLocal']  + "\\Aiml\\"
 
 testPlatform = "linux" in str(sys.platform)
 if testPlatform == True:
-	globalParameter['PathLocal'] = "/home/jarvis/workspace/jarvis"
+	#globalParameter['PathLocal'] = "/home/jarvis/workspace/jarvis"
 	globalParameter['PathOutput'] = globalParameter['PathLocal'] + "/Output/"
 	globalParameter['PathDB'] = globalParameter['PathLocal'] + "/Db/"
 	globalParameter['PyCommand'] = "python"
 	globalParameter['PyScripter'] = "notepadqq"
-	globalParameter['PathBot'] = globalParameter['PathLocal'] + "/Aiml/"
 
 globalParameter['ExtensionFile'] = ".py"
 globalParameter['BotNameForIntelligentResponse'] = "mybot"
@@ -53,8 +46,10 @@ globalParameter['LocalUsername'] = getpass.getuser().replace(' ','_')
 globalParameter['LocalHostname'] = socket.gethostname().replace(' ','_')
 globalParameter['LastCommand'] = ''
 globalParameter['ProgramDisplayOut'] = False
-globalParameter['LoggerIp'] = str(socket.gethostbyname(socket.gethostname())) +  ':8800'
+globalParameter['LoggerIp'] = str(socket.gethostbyname(socket.gethostname())) +  ':8810'
 
+globalParameter['RemoteCmdUpload'] = 'rmt upload'
+globalParameter['RemoteCmdDownload'] = 'rmt download'
 
 def GetLocalFile():
 	globalParameter['LocalFile'] = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + "_" + str(randint(0, 999)) + globalParameter['ExtensionFile']
@@ -72,6 +67,7 @@ class MyDb():
 			self.path = globalParameter['PathDB']
 			self.db = self.path  + globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] + ".db"
 			self.changed = False
+			self.dbName = globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername']
 			pass
 
 	def __init__(self, dbParameters):
@@ -109,7 +105,8 @@ class MyDb():
 			db = self.dbParameters.db
 			conn = sqlite3.connect(db)
 			cursor = conn.cursor()
-			cursor.execute("SELECT id,command FROM tag WHERE name='" + name + "'")
+			sql = "SELECT id,command FROM tag WHERE name='" + name + "'"
+			cursor.execute(sql)
 
 			#_id, command = cursor.fetchone() #debug
 
@@ -270,114 +267,11 @@ class JarvisUtils():
 			pass
 
 		return result
-
-class JarvisSSH():
-	class Parameters():
-		def __init__(self):
-			self.remotePath = '/home/jarvis/workspace/jarvis/'
-			self.remoteProgram = 'python'
-			self.hostname = '192.168.1.100'
-			self.port = 22
-			self.username = 'jarvis'
-			self.password = None
-			pass
-
-	def __init__(self, parameters):
-		self.parameters = JarvisSSH.Parameters()
-		self.parameters = parameters
-
-	def CheckPassword(self):
-		if(self.parameters.password == None):
-			#self.parameters.password = str(raw_input("password : "))
-			self.parameters.password = getpass.getpass()
-
-	def GetRemoteCommand(self, tags):
-		self.CheckPassword()
-		dest = globalParameter['PyCommand'] + GetLocalFile()
-		source = self.parameters.remotePath + GetLocalFile()
-
-		client = paramiko.SSHClient()
-		client.load_system_host_keys()
-		client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-
-		client.connect(self.parameters.hostname, self.parameters.port, username=self.parameters.username, password=str(self.parameters.password))
-
-		channel = client.invoke_shell()
-		stdin = channel.makefile('wb')
-		stdout = channel.makefile('rb')
-
-		stdin.write('''
-		cd ''' + self.parameters.remotePath + '''
-		''' + self.parameters.remoteProgram + ''' Jarvis.py write ''' + source + ''' ''' + tags + '''
-		exit
-		''')
-
-		st_out = stdout.read()
-		#print(st_out)
-		st_out = str(st_out)
-		if st_out.find('File save') != -1:
-			print('remote : ok')
-		elif st_out.find('not find') != -1:
-			print('remote : it did not find')		
-			return None			
-		else:
-			print('remote : error')
-			return None
-
-		stdout.close()
-		stdin.close()
-
-		sftp = client.open_sftp()
-		sftp.get(source, dest)
-		sftp.remove(source)
-	
-		client.close()
-		
-		localFile = dest
-		return localFile
-				
-	def PutRemoteCommand(self, tags, fileName):
-		self.CheckPassword()
-		destFileName = GetLocalFile()
-		dest = self.parameters.remotePath + destFileName
-		
-		client = paramiko.SSHClient()
-		client.load_system_host_keys()
-		client.set_missing_host_key_policy(paramiko.client.AutoAddPolicy())
-
-		client.connect(self.parameters.hostname, self.parameters.port, username=self.parameters.username, password=str(self.parameters.password))
-	
-		sftp = client.open_sftp()
-		sftp.put(fileName, dest)		
-		
-		channel = client.invoke_shell()
-		stdin = channel.makefile('wb')
-		stdout = channel.makefile('rb')
-
-		stdin.write('''
-		cd ''' + self.parameters.remotePath + '''
-		''' + self.parameters.remoteProgram + ''' Jarvis.py read ''' + destFileName + ''' ''' + tags + '''
-		rm ''' + destFileName + '''
-		exit
-		''')
-
-		st_out = stdout.read()
-		#print(st_out)
-		st_out = str(st_out)		
-		if st_out.find('record is ok') != -1:
-			print('remote : record ok')
-		else:
-			print('remote : error')
-
-		stdout.close()
-		stdin.close()		
-		client.close()
 		
 class Commands():
 	class Parameters():
 		def __init__(self):
 			self.dbParameters = None
-			self.sshParameters = JarvisSSH.Parameters()
 			pass
 
 	def __init__(self, parameters):
@@ -400,9 +294,61 @@ class Commands():
 			_localCommand = " ".join(_command[0:i])
 
 			if(self._DoCommand(_localCommand, _localParameters) == True):
-				return True
+				return True		
 
-		return False
+		commandfound = False
+		remotedb = False
+		localbaseTemp = None
+
+		if(_command[0] == "remote"):
+			print('Accessing remote db...')
+
+			jarvisfile = __file__
+
+			jv = JarvisUtils()
+			localbaseTemp = globalParameter['PathOutput'] + GetLocalFile().replace(".py", ".db")
+			_prog = globalParameter['PyCommand'] + " " + jarvisfile + " " + globalParameter['RemoteCmdDownload'] + " " + localbaseTemp + " " + self.parameters.dbParameters.dbName + ".db"
+			out = jv._Run(_prog)
+			
+			_error_00 = str(out).find('Sorry')>=0 
+			_error_01 = str(out).find('ERROR')>=0 
+			_error_02 = os.path.isfile(localbaseTemp) == False
+
+			if(_error_00):
+				print("Sorry. I don't have remote resource. Please create <" + globalParameter['RemoteCmdDownload'] + "> and <" + globalParameter['RemoteCmdUpload'] + "> in my base.")
+			elif(_error_01):
+				print("Sorry. Remote file error.")				
+			elif(_error_02):
+				print("Sorry. I don't have this base in remote.")
+			else:
+				remotedb=True		
+				self.parameters.dbParameters.db = localbaseTemp
+				_command.pop(0)
+
+				if(self._DoCommand(' '.join(_command)) == True):
+					commandfound = True
+
+			if commandfound == False:
+				for i in range(len(_command)-1,0,-1):
+					_localParameters = " ".join(_command[i:])
+					_localCommand = " ".join(_command[0:i])
+
+					if(self._DoCommand(_localCommand, _localParameters) == True):
+						commandfound = True
+						break
+		
+		if(remotedb == True):
+			_prog = globalParameter['PyCommand'] + " " + jarvisfile + " " + globalParameter['RemoteCmdUpload'] + " " + localbaseTemp + " " + self.parameters.dbParameters.dbName + ".db"
+			out = jv._Run(_prog)			
+
+			try:
+				if(os.path.isfile(localbaseTemp) == True):
+					os.remove(localbaseTemp)
+			except:
+				pass
+
+
+		return commandfound
 
 	def _DoCommand(self, command, parameters=None):
 
@@ -566,6 +512,8 @@ class Commands():
 					if(_dbChecked == False):
 						print("Hey. I find : ")
 						_dbChecked = True
+					
+					print("\n base=" + _dbtarget + "\n")
 
 					for row in rows:
 						_name, _command = row
@@ -670,97 +618,6 @@ class Commands():
 				print("Hum... Sorry, this order didnt find in my memory.")
 
 			return True
-			
-		elif(command == 'remote'):
-			
-			ssh = JarvisSSH(self.parameters.sshParameters)			
-			localFile = ssh.GetRemoteCommand(parameters)
-			
-			if(localFile == None):
-				return True
-			
-			_prog = globalParameter['PyCommand'] + " " + localFile
-
-			jv._Run(_prog)
-
-			if(os.path.isfile(localFile) == True):
-			   os.remove(localFile)
-
-			return True
-
-		elif(command == 'remote get'):
-
-			print("tags : " + parameters)
-			
-			ssh = JarvisSSH(self.parameters.sshParameters)			
-			localFile = ssh.GetRemoteCommand(parameters)
-			
-			if(localFile == None):
-				return True
-			
-			self.myDb.InsertTagWithFile(parameters, localFile)
-			print("Hey your record is ok.")
-
-			if(os.path.isfile(localFile) == True):
-			   os.remove(localFile)
-
-			return True
-			
-		elif(command == 'remote send'):
-		
-			localFile = globalParameter['PyCommand'] + GetLocalFile()
-
-			print("file : " + localFile)
-			print("tags : " + parameters)
-
-			_command = self.myDb.SelectCommandFromTag(parameters)
-
-			if(_command == None):
-				print("Ops. I did not find commands in this tags.")
-				return True
-				
-			fileTest = open(localFile,"wb")
-			fileTest.write(_command)
-			fileTest.close()
-
-			#print("temp file : " + localFile)
-			
-			ssh = JarvisSSH(self.parameters.sshParameters)			
-			ssh.PutRemoteCommand(parameters, localFile)
-			
-			if(os.path.isfile(localFile) == True):
-			   os.remove(localFile)						
-				
-			return True		
-			
-		elif(command == 'remote save' or command == 'remote record' and parameters!=None and sys.platform == 'win32'):
-
-			print("tags : " + parameters)
-			
-			ssh = JarvisSSH(self.parameters.sshParameters)			
-			localFile = ssh.GetRemoteCommand(parameters)
-			
-			fileTest = None
-
-			if(localFile == None):
-				localFile = GetLocalFile()
-				fileTest = open(localFile,"w")
-				_command = self.MakeCommandExemple()
-				fileTest.write(_command)
-				fileTest.close()				
-
-			jv._Run(globalParameter['PyScripter'] + " " + localFile)
-
-			ssh = JarvisSSH(self.parameters.sshParameters)			
-			ssh.PutRemoteCommand(parameters, localFile)			
-			
-			#self.myDb.InsertTagWithFile(parameters, localFile)
-			#print("Hey your local record is ok too.")
-
-			if(os.path.isfile(localFile) == True):
-				os.remove(localFile)
-
-			return True			
 						
 		elif(command == 'save' or command == 'record' and parameters!=None and sys.platform == 'win32'):
 
@@ -835,7 +692,7 @@ class Commands():
 			_command = _command + "\tif(len(sys.argv) > 1):\n"
 			_command = _command + "\t\tif(sys.argv[len(sys.argv)-1] == '-h' or sys.argv[len(sys.argv)-1] == 'help'):\n"
 			_command = _command + "\t\t\tprint(Main.__doc__)\n"
-			_command = _command + "\t\t\texit()\n"
+			_command = _command + "\t\t\tsys.exit()\n"
 			_command = _command + "\tMain()\n"
 			_command = _command + "\t\n"
 			_command = _command + "\tparam = ' '.join(sys.argv[1:])\n"
@@ -862,7 +719,6 @@ def main(argv):
 
 	idTarget = []
 	dbTarget = None
-	jarvisSSHParameters = JarvisSSH.Parameters()
 	
 	fileConfiName = globalParameter['PathLocal'] + "\\config.ini"
 	if(os.path.isfile(fileConfiName)):
@@ -871,6 +727,7 @@ def main(argv):
 			fileConfig = ConfigParser()
 		else:
 			fileConfig = ConfigParser.RawConfigParser()
+			pass
 
 		fileConfig.read([fileConfiName])
 		itens = fileConfig.items('Parameters')
@@ -882,8 +739,9 @@ def main(argv):
 					globalParameter[globalParameter_key]=item[1]
 					itemFound=True
 			if itemFound == False:
-				stringItem = "-" + str(item[0]) + "=" + str(item[1])
-				argv.insert( 1, stringItem)
+				#stringItem = "-" + str(item[0]) + "=" + str(item[1])
+				#argv.insert( 1, stringItem)
+				pass
 
 	for globalParameter_key in globalParameter:    
 		stringArg = '-' + globalParameter_key.lower() + '='
@@ -924,26 +782,6 @@ def main(argv):
 			globalParameter['ProgramDisplayOut'] = True
 			print("display : true")			
 
-		stringArg = '-remotehostname='
-		if(argv[idArg].find(stringArg) >= 0):
-			idTarget.append(idArg)
-			jarvisSSHParameters.hostname = argv[idArg][argv[idArg].find(stringArg)+len(stringArg):]
-
-		stringArg = '-remoteport='
-		if(argv[idArg].find(stringArg) >= 0):
-			idTarget.append(idArg)
-			jarvisSSHParameters.port = argv[idArg][argv[idArg].find(stringArg)+len(stringArg):]
-
-		stringArg = '-remoteusername='
-		if(argv[idArg].find(stringArg) >= 0):
-			idTarget.append(idArg)
-			jarvisSSHParameters.username = argv[idArg][argv[idArg].find(stringArg)+len(stringArg):]
-
-		stringArg = '-remotepassword='
-		if(argv[idArg].find(stringArg) >= 0):
-			idTarget.append(idArg)
-			jarvisSSHParameters.password = argv[idArg][argv[idArg].find(stringArg)+len(stringArg):]
-
 		stringArg = '-user='
 		if(argv[idArg].find(stringArg) >= 0):
 			idTarget.append(idArg)			
@@ -958,11 +796,11 @@ def main(argv):
 	command = ' '.join(argv)
 
 	parameters = Commands.Parameters()
-	parameters.sshParameters = jarvisSSHParameters
 
 	dbParameters = MyDb.Parameters()
 	if(dbTarget != None):
 		dbParameters.db = dbParameters.path  + "\\" + dbTarget + ".db"
+		dbParameters.dbName = dbTarget
 		dbParameters.changed = True
 
 	db = MyDb(dbParameters)
