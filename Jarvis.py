@@ -51,6 +51,10 @@ globalParameter['LoggerIp'] = str(socket.gethostbyname(socket.gethostname())) + 
 globalParameter['RemoteCmdUpload'] = 'rmt upload'
 globalParameter['RemoteCmdDownload'] = 'rmt download'
 
+globalParameter['FileCommandModel'] = globalParameter['PathLocal']  + "\\model_command.py"
+globalParameter['FileServiceModel'] = globalParameter['PathLocal']  + "\\model_service.py"
+
+
 def GetLocalFile():
 	globalParameter['LocalFile'] = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + "_" + str(randint(0, 999)) + globalParameter['ExtensionFile']
 	return globalParameter['LocalFile']
@@ -208,7 +212,7 @@ class JarvisUtils():
 					data[:] = []
 					data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : globalParameter['LastCommand'] , 'time' : localTime , 'status' : 'alive'})
 					requests.post(url, data=json.dumps(data), headers=headers)
-					time.sleep(2.0)
+					time.sleep(5.0)
 
 				data[:] = []
 				localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
@@ -520,8 +524,13 @@ class Commands():
 						describe = ''
 						route = ''					
 
-						if(command == 'list' or command == 'route'):						
-							if(str(_command).find('print(Main.__doc__)')>=0):
+						if(command == 'find' or command == 'route'):	
+
+							test_help_000 = str(_command).find("print(Main.__doc__)") >= 0
+							test_help_001 = str(_command).find("if(len(sys.argv) > 1)") >= 0
+							test_help_002 = str(_command).find("parser.add_argument") >= 0
+
+							if(test_help_000>=0 and (test_help_001 or test_help_002)):
 								fileTest = open(localFile,"wb")
 								fileTest.write(_command)
 								fileTest.close()
@@ -545,13 +554,20 @@ class Commands():
 								if(parameters!=None):
 									_prog = _prog + " " + parameters
 
-								out = jv._Run(_prog + ' -h', False)
+								out = ""
+								if(test_help_001 == True):
+									out = jv._Run(_prog + ' -h', False)
+								elif(test_help_002 == True):
+									out = jv._Run(_prog + ' -d', False)
 
 								if(os.path.isfile(localFile) == True):
 								   os.remove(localFile)
 								   pass
 								
-								describe = '-->' + str(str(str(out).split('\\n')[0]).replace('\n','').replace('\\r','').replace("b'",''))
+								describe = ""
+
+								if(out != ""):
+									describe = '-->' + str(str(str(out).split('\\n')[0]).replace('\n','').replace('\\r','').replace("b'",''))
 
 								if(command == 'route'):
 									describe = '\n\tdescribe:: ' + describe.replace('-->','')
@@ -619,7 +635,7 @@ class Commands():
 
 			return True
 						
-		elif(command == 'save' or command == 'record' and parameters!=None and sys.platform == 'win32'):
+		elif(command == 'save' or command == 'record' or command == 'record service' and parameters!=None and sys.platform == 'win32'):
 
 			_command = self.myDb.SelectCommandFromTag(parameters)
 
@@ -628,7 +644,14 @@ class Commands():
 			if(_command == None):
 
 				fileTest = open(localFile,"w")
+
 				_command = self.MakeCommandExemple()
+
+				if(command == 'record service'):
+					if os.path.exists(globalParameter['FileServiceModel']) == True:
+						_command = self.LoadFile(globalParameter['FileServiceModel'])
+				elif os.path.exists(globalParameter['FileCommandModel']) == True:
+					_command = self.LoadFile(globalParameter['FileCommandModel'])
 				fileTest.write(_command)
 				fileTest.close()
 
@@ -699,6 +722,14 @@ class Commands():
 			_command = _command + "\tprint('param ' + param)\n"
 			
 		return _command
+
+	def LoadFile(self,pathFile):
+		_command = ""
+		with open(pathFile) as f:
+			_command =  f.read()
+
+		return _command
+
 def main(argv):
 	if(len(argv)<=0):
 		print("Hello! What could I do for you??")
