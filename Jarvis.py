@@ -530,6 +530,10 @@ class Commands():
 							test_help_001 = str(_command).find("if(len(sys.argv) > 1)") >= 0
 							test_help_002 = str(_command).find("parser.add_argument") >= 0
 
+							#print(test_help_000)
+							#print(test_help_001)
+							#print(test_help_002)
+
 							if(test_help_000>=0 and (test_help_001 or test_help_002)):
 								fileTest = open(localFile,"wb")
 								fileTest.write(_command)
@@ -555,10 +559,10 @@ class Commands():
 									_prog = _prog + " " + parameters
 
 								out = ""
-								if(test_help_001 == True):
-									out = jv._Run(_prog + ' -h', False)
-								elif(test_help_002 == True):
+								if(test_help_002 == True):
 									out = jv._Run(_prog + ' -d', False)
+								elif(test_help_001 == True):									
+									out = jv._Run(_prog + ' -h', False)
 
 								if(os.path.isfile(localFile) == True):
 								   os.remove(localFile)
