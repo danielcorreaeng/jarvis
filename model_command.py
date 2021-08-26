@@ -31,12 +31,12 @@ def Main():
     global VALUES_INPUT
     global VALUES_OUTPUT
 
-    #print(VALUES_INPUT)    
-    #VALUES_OUTPUT['test'] = 'teste inicial'
+    VALUES_OUTPUT = VALUES_INPUT
     
     #OpenFolder(r'C:\Windows')
     #Run(r'Calc')
     #Run(r'C:\Program Files\Google\Chrome\Application\chrome.exe','-incognito www.google.com.br')
+    #VALUES_OUTPUT['vartest'] = 'test'
 	
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=Main.__doc__)
@@ -60,21 +60,15 @@ if __name__ == '__main__':
         runner.run(suite)               
         sys.exit()        
 
-    if args['file_input']:
-        try:        
-            with open(args['file_input']) as json_file:
-                VALUES_INPUT = json.load(json_file)
-        except:
-            pass
+    if args['file_input']:   
+        with open(args['file_input']) as json_file:
+            VALUES_INPUT = json.load(json_file)
 
     param = ' '.join(unknown)
 
     Main()
     
     if args['file_output']:
-        try:        
-            with open(args['file_output'], "w") as outfile:                    
-                json_string = json.dumps(VALUES_OUTPUT, default=lambda o: o.__dict__, sort_keys=True, indent=2)
-                outfile.write(json_string)                
-        except:
-            pass
+        with open(args['file_output'], "w") as outfile:                    
+            json_string = json.dumps(VALUES_OUTPUT, default=lambda o: o.__dict__, sort_keys=True, indent=2)
+            outfile.write(json_string)                

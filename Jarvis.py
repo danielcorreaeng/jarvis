@@ -390,8 +390,8 @@ class Commands():
 			print(" record <tag0> <tag1> : i try open editor code and i will record it with tags.")
 			print(" read <file> <tag0> <tag1> : give me a file and i record with <tag0> <tag1>. ")
 			print(" write <file> <tag0> <tag1> : i save the code in <file>.")
-			print(" find <tag0> : i try find in my memory <tag0>.")
-			print(" list <tag0> : i try find in my memory <tag0> and describes.")
+			print(" list <tag0> : i try find in my memory <tag0>.")
+			print(" find <tag0> : i try find in my memory <tag0> and describes.")
 			print(" copy <base> <tag0> : i copy <tag0> to <base>.")
 			print(" forget <tag0> : i forget <tag>... I think this.")
 			print(" ")
@@ -795,6 +795,7 @@ def main(argv):
 		if(argv[idArg].find(stringArg) >= 0):
 			idTarget.append(idArg)
 			globalParameter['PyCommand'] = argv[idArg][argv[idArg].find(stringArg)+len(stringArg):]
+			globalParameter['PyScripter'] = globalParameter['PyCommand']			
 			if(globalParameter['PyCommand'] == 'jupyter'):
 				globalParameter['PyCommand'] = 'jupyter notebook'
 				globalParameter['ExtensionFile'] = ".ipynb"
@@ -802,8 +803,7 @@ def main(argv):
 			elif(globalParameter['PyCommand'] == 'spyder3'):
 				globalParameter['PyCommand'] = 'py'
 				globalParameter['PyScripter'] = 'spyder3'
-			else:
-				globalParameter['PyScripter'] = globalParameter['PyCommand']
+
 			print('pyCommand : ' + globalParameter['PyCommand'])
 			
 		stringArg = '-extension='
