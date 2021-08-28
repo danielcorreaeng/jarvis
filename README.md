@@ -1,6 +1,7 @@
 # Jarvis
 
-A Personal Assistant for Linux and Windows in developed
+A Personal Assistant for Linux and Windows in developed.
+The objective is store automation codes in the database and execute them with associated tags.
 
 ## Authors
 
@@ -13,17 +14,104 @@ See also the list of [contributors](contributors.md) who participated in this pr
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
 ## Help
-Use Python 3.6.8
+Try:
 
-In windows, i use python portable and i create a Jarvis.bat with:
-
-	@echo off
-	C:\Jarvis\Python_Win\App\python.exe C:\Jarvis\Jarvis.py %*
-
-and i save in C:\Windows\System32.
-
-So...
-
-C:\Users\Usuario>jarvis help
-
+    python Jarvis.py help
  
+Result:
+
+	Hum... Let me try :
+         <tag0> <tag1> : i execute the code what it have <tag0> <tag1>.
+         record <tag0> <tag1> : i try open editor code and i will record it with tags.
+         read <file> <tag0> <tag1> : give me a file and i record with <tag0> <tag1>.
+         write <file> <tag0> <tag1> : i save the code in <file>.
+         list <tag0> : i try find in my memory <tag0>.
+         find <tag0> : i try find in my memory <tag0> and describes.
+         copy <base> <tag0> : i copy <tag0> to <base>.
+         forget <tag0> : i forget <tag>... I think this.
+         <tag0> <tag1> -base=<base> : i execute the code what it have tags from <base>.
+         <tag0> <tag1> -display=true : i execute the code using the program display.
+         <tag0> <tag1> -program=<program> : i execute the code using other program.
+         mybot blablabla. : i will speek with you.
+         
+In short, you create a new command (default editor spyder3) with **Jarvis.py create tag** and then run it with **Jarvis.py tag**
+
+Chatbot is a command-enabled microservice in default base.
+    
+    python Jarvis.py chatbot -base=services
+
+It use the terminal as flask microservice. Use **other terminal** to chat like exemple.
+
+    python Jarvis.py mybot oi!
+    python Jarvis.py mybot [learn] Tchau [answer] Bye!
+    python Jarvis.py mybot Tchau
+
+## Instalation
+
+It has been tested with Python 3.6.8 and Python 3.7.10.
+
+### Windows with Anaconda
+
+Best practices that I used to maximize application automations will be demonstrated.
+
+For instalation, you need create a new environment in **anaconda prompt**.
+
+    conda create -n jarvis python=3.6.8
+    activate jarvis
+
+Then in path of Jarvis, you will install a requirements.
+
+    pip install -r requirements.txt
+
+Test application.
+
+    python Jarvis.py find
+    
+You can make the anaconda jarvis environment with default environment in windows.
+Enter in environment variables in windows and put in **path** the path of anaconda and path of anaconda script. It is like **C:\Users\Daniel\.conda\envs\jarvis** and **C:\Users\Daniel\.conda\envs\jarvis\Scripts**. This makes your commands easier and makes the environment more controlled. This is optional.
+
+You can create a **bat file** to make the commands easier. Insert the entry of your anaconda jarvis environment into it. Something like this command. 
+
+    @echo off
+    C:\Users\Daniel\.conda\envs\jarvis\python.exe C:\Jarvis\Jarvis.py %*
+
+Save this file with **Jarvis.bat in C:\Windows\System32\ .** You need reboot your system. After that enter in **windows prompt command and test**.
+
+    Jarvis find
+
+If you want work with services and chatbots, i suggest you put a **bat file** in your **%AppData%\Microsoft\Windows\Start Menu\Programs\Startup** . Something like this command.
+
+    cd C:\Jarvis
+    C:\Users\Daniel\.conda\envs\jarvis\python.exe C:\Jarvis\jarvis.py controller -base=services
+ 
+It will open **jarvis service controller** and you can add services like chatbot and logger and others. By default it will run the services **chatbot -base=services** and **datalogger -base=services**. You can edit it.
+
+    Jarvis record controller -base=services
+    
+Or put in **config.ini** in section **CriticalServices** other jarvis services commands like it.
+
+    [CriticalServices]
+    bla1=datalogger -base=services
+    bla2=calc
+    bla3=test -base=test
+    
+The service in **%AppData%\Microsoft\Windows\Start Menu\Programs\Startup** will start in next restart system.
+
+Try after that ask with your bot in your **windows prompt command**
+
+    Jarvis mybot oi!
+    
+I use to name my bots. For that I create a **bat file** like to this one.
+
+    @echo off
+    C:\Users\Daniel\.conda\envs\jarvis\python.exe C:\Jarvis\Jarvis.py mybot %*
+
+I save this file with **BOTNAME.bat in C:\Windows\System32\ .** You need reboot your system. After that enter in **windows prompt command and test**.
+    
+    BOTNAME oi!
+
+To teach him/her something new, use command
+
+    BOTNAME [learn] Ola! [answer] oioi!
+    
+Have fun!!! =)
