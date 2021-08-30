@@ -4,15 +4,14 @@ import os.path
 import sys, os
 import subprocess
 import datetime
-#import shutil, errno
-import socket #,select
+import socket
 import time
 import threading
 import requests
 import getpass
 import json
 import glob
-#import getpass
+import psutil
 from random import randint
 
 if (sys.version_info > (3, 0)):
@@ -28,15 +27,13 @@ globalParameter['PathLocal'] = os.path.dirname(os.path.abspath(__file__))
 globalParameter['PathDB'] = globalParameter['PathLocal']  + "\\Db\\"
 globalParameter['PathOutput'] = globalParameter['PathLocal']  + "\\Output\\"
 
-globalParameter['PyCommand'] = "py"
+globalParameter['PyCommand'] = sys.executable
 globalParameter['PyScripter'] = "spyder3"
 
 testPlatform = "linux" in str(sys.platform)
 if testPlatform == True:
-	#globalParameter['PathLocal'] = "/home/jarvis/workspace/jarvis"
 	globalParameter['PathOutput'] = globalParameter['PathLocal'] + "/Output/"
 	globalParameter['PathDB'] = globalParameter['PathLocal'] + "/Db/"
-	globalParameter['PyCommand'] = "python"
 	globalParameter['PyScripter'] = "notepadqq"
 
 globalParameter['ExtensionFile'] = ".py"
@@ -59,6 +56,14 @@ def GetLocalFile():
 	globalParameter['LocalFile'] = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + "_" + str(randint(0, 999)) + globalParameter['ExtensionFile']
 	return globalParameter['LocalFile']
 
+def CheckProcess(process_name_target):
+    result = False
+    for proc in psutil.process_iter():
+        if str(proc.name).lower().find(str(process_name_target))>=0:
+            result = True       
+            break         
+    return result
+	
 class MyException(Exception):
     def __init__(self, value):
         self.parameter = value
@@ -678,6 +683,13 @@ class Commands():
 					print("Backup saved in tag '" + bkpParameters + "' in base 'bkp'")
 
 			jv._Run(globalParameter['PyScripter'] + " " + localFile)
+
+			wait_editor = True
+			while(wait_editor):			
+				time.sleep(5)   
+				wait_editor = CheckProcess(globalParameter['PyScripter'])
+				if(wait_editor):
+					self.myDb.InsertTagWithFile(parameters, localFile)				
 
 			self.myDb.InsertTagWithFile(parameters, localFile)
 			print("Hey your record is ok.")

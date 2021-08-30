@@ -50,16 +50,11 @@ It use the terminal as flask microservice. Use **other terminal** to chat like e
 
 It has been tested with Python 3.6.8 and Python 3.7.10.
 
-### Windows with Anaconda
+### Windows
 
 Best practices that I used to maximize application automations will be demonstrated.
 
-For instalation, you need create a new environment in **anaconda prompt**.
-
-    conda create -n jarvis python=3.6.8
-    activate jarvis
-
-Then in path of Jarvis, you will install a requirements.
+For instalation, you will install the requirements **in path of Jarvis**.
 
     pip install -r requirements.txt
 
@@ -67,13 +62,10 @@ Test application.
 
     python Jarvis.py find
     
-You can make the anaconda jarvis environment with default environment in windows.
-Enter in environment variables in windows and put in **path** the path of anaconda and path of anaconda script. It is like **C:\Users\Daniel\.conda\envs\jarvis** and **C:\Users\Daniel\.conda\envs\jarvis\Scripts**. This makes your commands easier and makes the environment more controlled. This is optional.
-
-You can create a **bat file** to make the commands easier. Insert the entry of your anaconda jarvis environment into it. Something like this command. 
+You can create a **bat file** to make the commands easier. Something like this command. 
 
     @echo off
-    C:\Users\Daniel\.conda\envs\jarvis\python.exe C:\Jarvis\Jarvis.py %*
+    python C:\Jarvis\Jarvis.py %*
 
 Save this file with **Jarvis.bat in C:\Windows\System32\ .** You need reboot your system. After that enter in **windows prompt command and test**.
 
@@ -81,8 +73,7 @@ Save this file with **Jarvis.bat in C:\Windows\System32\ .** You need reboot you
 
 If you want work with services and chatbots, i suggest you put a **bat file** in your **%AppData%\Microsoft\Windows\Start Menu\Programs\Startup** . Something like this command.
 
-    cd C:\Jarvis
-    C:\Users\Daniel\.conda\envs\jarvis\python.exe C:\Jarvis\jarvis.py controller -base=services
+    python C:\Jarvis\jarvis.py controller -base=services
  
 It will open **jarvis service controller** and you can add services like chatbot and logger and others. By default it will run the services **chatbot -base=services** and **datalogger -base=services**. You can edit it.
 
@@ -104,7 +95,7 @@ Try after that ask with your bot in your **windows prompt command**
 I use to name my bots. For that I create a **bat file** like to this one.
 
     @echo off
-    C:\Users\Daniel\.conda\envs\jarvis\python.exe C:\Jarvis\Jarvis.py mybot %*
+    python C:\Jarvis\Jarvis.py mybot %*
 
 I save this file with **BOTNAME.bat in C:\Windows\System32\ .** You need reboot your system. After that enter in **windows prompt command and test**.
     
