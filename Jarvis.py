@@ -755,15 +755,6 @@ def main(argv):
 
 	globalParameter['LastCommand'] =  ' '.join(argv)
 
-	if(argv[0].find(globalParameter['BotNameForIntelligentResponse'])>=0):
-
-		msg = ' '.join(argv[1:])
-		bot_response = _jv.ChatBot(msg)
-		print(bot_response)
-
-		argv = argv[1:]
-		return
-
 	idTarget = []
 	dbTarget = None
 	
@@ -796,6 +787,15 @@ def main(argv):
 			if(argv[idArg].find(stringArg) >= 0):
 				idTarget.append(idArg)
 				globalParameter[globalParameter_key] = argv[idArg][argv[idArg].find(stringArg)+len(stringArg):]
+
+	if(argv[0].find(globalParameter['BotNameForIntelligentResponse'])>=0):
+
+		msg = ' '.join(argv[1:])
+		bot_response = _jv.ChatBot(msg)
+		print(bot_response)
+
+		argv = argv[1:]
+		return
 
 	for idArg in range(0,len(argv)):
 		stringArg = '-base='
