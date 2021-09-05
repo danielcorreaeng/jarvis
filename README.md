@@ -117,7 +117,7 @@ config.ini example
     BotIp=192.168.15.49:8805
 
     [CriticalServices]
-
+    bla1=telegram -base=integration
 
     [Telegram]
     token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
