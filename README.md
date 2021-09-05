@@ -106,3 +106,19 @@ To teach him/her something new, use command
     BOTNAME [learn] Ola! [answer] oioi!
     
 Have fun!!! =)
+
+## config.ini example
+
+config.ini example
+
+    [Parameters]
+    PyCommand=python
+    PyScripter=code
+    BotIp=192.168.15.49:8805
+
+    [CriticalServices]
+
+
+    [Telegram]
+    token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    alloweduser=@user
