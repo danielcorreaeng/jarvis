@@ -393,6 +393,7 @@ class Commands():
 			print(" <tag0> <tag1> : i execute the code what it have <tag0> <tag1>.")
 
 			print(" record <tag0> <tag1> : i try open editor code and i will record it with tags.")
+			print(" record service <tag0> <tag1> : i try open editor code (with service model) and i will record it with tags.")
 			print(" read <file> <tag0> <tag1> : give me a file and i record with <tag0> <tag1>. ")
 			print(" write <file> <tag0> <tag1> : i save the code in <file>.")
 			print(" list <tag0> : i try find in my memory <tag0>.")

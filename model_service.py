@@ -17,47 +17,46 @@ import configparser
 from flask import Flask, request, jsonify
 from threading import Thread
 
-LocalPort = 8821
-PreferredNetworks = ['192.168.15.','127.0.0.']
-BlockedNetworks = ['192.168.56.', '192.168.100.']
-LocalIp = socket.gethostbyname(socket.gethostname())
-app = Flask(__name__)
-
-PathLocal = "C:\\Jarvis"
-PathJarvis = "C:\\Jarvis\\Jarvis.py"
-PathOutput = PathLocal + "\\Output"
-PathExecutable = "python"
-
 INPUT_DATA = []
 OUTPUT_DATA = []
 OUTPUT_DATA_WEBHOOK = []
-INPUT_DATA_OFF = False
-OUTPUT_DATA_OFF = False
-MAINLOOP_CONTROLLER = True
-MAINWEBSERVER = True
-MAINLOOP_SLEEP_SECONDS = 5.0
-PROCESS_JARVIS = None
+
+globalParameter = {}
+globalParameter['PathLocal'] ="C:\\Jarvis"
+globalParameter['PathJarvis'] = "C:\\Jarvis\\Jarvis.py"
+globalParameter['PathOutput'] = globalParameter['PathLocal'] + "\\Output"
+globalParameter['PathExecutable'] = "python"
+
+globalParameter['LocalPort'] = 8821
+globalParameter['PreferredNetworks'] = ['192.168.15.','127.0.0.']
+globalParameter['BlockedNetworks'] = ['192.168.56.', '192.168.100.']
+globalParameter['LocalIp'] = socket.gethostbyname(socket.gethostname())
+app = Flask(__name__)
+
+globalParameter['INPUT_DATA_OFF'] = False
+globalParameter['OUTPUT_DATA_OFF'] = False
+globalParameter['MAINLOOP_CONTROLLER'] = True
+globalParameter['MAINWEBSERVER'] = True
+globalParameter['MAINLOOP_SLEEP_SECONDS'] = 5.0
+globalParameter['PROCESS_JARVIS'] = None
 
 class TestCases(unittest.TestCase):
     def test_webserver_fifo(self):
         global INPUT_DATA
         global OUTPUT_DATA
-        global MAINLOOP_SLEEP_SECONDS
-        global MAINLOOP_CONTROLLER
-        global MAINWEBSERVER
-        global OUTPUT_DATA_WEBHOOK
-        global PROCESS_JARVIS
+        global OUTPUT_DATA_WEBHOOK        
+        global globalParameter
         global app
 
         INPUT_DATA.clear()
         OUTPUT_DATA.clear()
         OUTPUT_DATA_WEBHOOK.clear()
-        MAINLOOP_SLEEP_SECONDS = 1
-        MAINLOOP_CONTROLLER = True
-        MAINWEBSERVER = False
-        PROCESS_JARVIS = 'testcases_intern'
+        globalParameter['MAINLOOP_SLEEP_SECONDS'] = 1
+        globalParameter['MAINLOOP_CONTROLLER'] = True
+        globalParameter['MAINWEBSERVER'] = False
+        globalParameter['PROCESS_JARVIS'] = 'testcases_intern'
 
-        RunJarvis('record ' + PROCESS_JARVIS + ' -program=dump')
+        RunJarvis('record ' + globalParameter['PROCESS_JARVIS'] + ' -program=dump')
 
         Main()
 
@@ -69,7 +68,7 @@ class TestCases(unittest.TestCase):
         data = []
         localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
         data.append({'time' : localTime , 'value' : value00})        
-        url = "http://" + LocalIp + ":" + str(LocalPort) + "/exemple/input"
+        url = "http://" + globalParameter['LocalIp'] + ":" + str(globalParameter['LocalPort']) + "/exemple/input"
         headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
         data=json.dumps(data)
 
@@ -82,16 +81,16 @@ class TestCases(unittest.TestCase):
         
         response = app.post(url, data=data, headers=headers)
     
-        time.sleep(MAINLOOP_SLEEP_SECONDS+5)
-        time.sleep(MAINLOOP_SLEEP_SECONDS+5)
+        time.sleep(globalParameter['MAINLOOP_SLEEP_SECONDS']+5)
+        time.sleep(globalParameter['MAINLOOP_SLEEP_SECONDS']+5)
 
-        url = "http://" + LocalIp + ":" + str(LocalPort) + "/exemple/output"
+        url = "http://" + globalParameter['LocalIp'] + ":" + str(globalParameter['LocalPort']) + "/exemple/output"
         response = app.get(url)
         data = response.data
         data = json.loads(data.decode("utf-8"))
 
-        MAINLOOP_CONTROLLER = False
-        time.sleep(MAINLOOP_SLEEP_SECONDS+5)     
+        globalParameter['MAINLOOP_CONTROLLER'] = False
+        time.sleep(globalParameter['MAINLOOP_SLEEP_SECONDS']+5)     
 
         check = True
         check = check and OUTPUT_DATA[0]['value'] == value01
@@ -110,7 +109,7 @@ def Run(command, parameters=None, wait=False):
         proc.communicate()
 
 def RunJarvis(tags):
-	Run(PathExecutable + ' ' + PathJarvis + ' ' + tags, None, True)  
+	Run(globalParameter['PathExecutable'] + ' ' + globalParameter['PathJarvis'] + ' ' + tags, None, True)  
 
 @app.route('/exemple/table')
 def ExampleTable():
@@ -168,13 +167,13 @@ def ExemplePost():
 
 @app.route('/')
 def index():
-    return str(Main.__doc__) + " | ip server : " +  LocalIp
+    return str(Main.__doc__) + " | ip server : " +  globalParameter['LocalIp']
 
 def GetCorrectIp(LocalIps):
     LocalIp = None
     
     for myip in LocalIps[2]:
-        for iptest in PreferredNetworks:
+        for iptest in globalParameter['PreferredNetworks']:
             if(myip.find(iptest)>=0):
                 LocalIp = myip
                 break
@@ -182,7 +181,7 @@ def GetCorrectIp(LocalIps):
     if(LocalIp == None):
         ipblock = False
         for myip in LocalIps[2]:
-            for iptest in BlockedNetworks:
+            for iptest in globalParameter['BlockedNetworks']:
                 if(myip.find(iptest)>=0):
                     ipblock = True
                     break
@@ -197,10 +196,7 @@ def GetCorrectIp(LocalIps):
     return LocalIp
 
 def GetCorrectPath():
-    global PathExecutable
-    global PathLocal
-    global PathOutput
-    global PathJarvis
+    global globalParameter
 
     dir_path = os.path.dirname(os.path.realpath(__file__)) 
     os.chdir(dir_path)
@@ -213,10 +209,10 @@ def GetCorrectPath():
         if(os.path.isfile(jarvis_file) == False):
             return
     
-    PathExecutable = sys.executable
-    PathLocal = os.path.dirname(os.path.realpath(jarvis_file))
-    PathJarvis = jarvis_file
-    PathOutput = PathLocal + "\\Output"
+    globalParameter['PathExecutable'] = sys.executable
+    globalParameter['PathLocal'] = os.path.dirname(os.path.realpath(jarvis_file))
+    globalParameter['PathJarvis'] = jarvis_file
+    globalParameter['PathOutput'] = globalParameter['PathLocal'] + "\\Output"
 
     if(os.path.isfile(ini_file) == True):
         with open(ini_file) as fp:
@@ -295,21 +291,20 @@ def makePage(TITLE, DATA, PAGE_SCRIPT = ''):
 
 def mainLoop():
     global INPUT_DATA
-    global INPUT_DATA_OFF
     global OUTPUT_DATA
-    global OUTPUT_DATA_OFF
+    global globalParameter    
 
-    if(INPUT_DATA_OFF == False):
+    if(globalParameter['INPUT_DATA_OFF'] == False):
         if(len(INPUT_DATA)<=0):
             return
 
     VirtualInput()
 
-    if(OUTPUT_DATA_OFF == False and len(INPUT_DATA)>0):
+    if(globalParameter['OUTPUT_DATA_OFF'] == False and len(INPUT_DATA)>0):
         OUTPUT_DATA.append(mainLoopProcess(INPUT_DATA[0]))
-    elif(OUTPUT_DATA_OFF == True and len(INPUT_DATA)>0):
+    elif(globalParameter['OUTPUT_DATA_OFF'] == True and len(INPUT_DATA)>0):
         mainLoopProcess(INPUT_DATA[0])
-    elif(OUTPUT_DATA_OFF == True and INPUT_DATA_OFF == True):
+    elif(globalParameter['OUTPUT_DATA_OFF'] == True and globalParameter['INPUT_DATA_OFF'] == True):
         mainLoopProcess(None) 
 
     if(len(INPUT_DATA)>0):    
@@ -333,12 +328,12 @@ def mainLoop():
                 OUTPUT_DATA.pop(0)
      
 def mainThread():
-    global MAINLOOP_CONTROLLER
+    global globalParameter
 
-    while(MAINLOOP_CONTROLLER):
+    while(globalParameter['MAINLOOP_CONTROLLER']):
         try:                 
             mainLoop()
-            time.sleep(MAINLOOP_SLEEP_SECONDS) 
+            time.sleep(globalParameter['MAINLOOP_SLEEP_SECONDS']) 
             #print('Loop')
         except:
             print('Error Loop')
@@ -350,15 +345,15 @@ def VirtualInput():
 def mainLoopProcess(input_data):
     result = None
 
-    if(PROCESS_JARVIS != None):
-        fileInput = PathOutput + "\\" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f_in.json")
-        fileOutput = PathOutput + "\\" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f_out.json")
+    if(globalParameter['PROCESS_JARVIS'] != None):
+        fileInput = globalParameter['PathOutput'] + "\\" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f_in.json")
+        fileOutput = globalParameter['PathOutput'] + "\\" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f_out.json")
 
         with open(fileInput, "w") as outfile:                    
             json_string = json.dumps(input_data, default=lambda o: o.__dict__, sort_keys=True, indent=2)
             outfile.write(json_string)  
 
-        RunJarvis(PROCESS_JARVIS + " -i " + fileInput + " -o " + fileOutput)
+        RunJarvis(globalParameter['PROCESS_JARVIS'] + " -i " + fileInput + " -o " + fileOutput)
 
         with open(fileOutput) as json_file:
             result = json.load(json_file)
@@ -371,14 +366,12 @@ def mainLoopProcess(input_data):
 def Main():
     """no describe"""    
 
-    global LocalIp
-    global MAINWEBSERVER
-    global MAINLOOP_CONTROLLER
+    global globalParameter
     
     GetCorrectPath()
 
     try:        
-        LocalIp = GetCorrectIp(socket.gethostbyname_ex(socket.gethostname()))
+        globalParameter['LocalIp'] = GetCorrectIp(socket.gethostbyname_ex(socket.gethostname()))
     except:
         print('error ip')
         
@@ -389,8 +382,8 @@ def Main():
         print('error mainThread')
 
     try:
-        if(MAINWEBSERVER == True):
-            app.run(host = str(LocalIp),port=LocalPort) 
+        if(globalParameter['MAINWEBSERVER'] == True):
+            app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort']) 
         pass
     except:
         print('error webservice')
@@ -412,7 +405,7 @@ if __name__ == '__main__':
         suite.addTest(TestCases("test_webserver_fifo")) 
         runner = unittest.TextTestRunner()
         runner.run(suite)  
-        MAINLOOP_CONTROLLER = False             
+        globalParameter['MAINLOOP_CONTROLLER'] = False             
         sys.exit()        
 
     param = ' '.join(unknown)
