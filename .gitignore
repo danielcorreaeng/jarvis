@@ -18,6 +18,7 @@ Thumbs.db
 *.log
 *.suo
 *.pyc
+*.ini
 todolist.txt
 
 reminderlist.txt
@@ -29,6 +30,8 @@ Python_Linux/*
 Output/*
 Aiml/*
 Db/temp/*
+Db/*
+Db\*
 temp/*
 *.bat
 *.db
