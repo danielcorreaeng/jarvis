@@ -13,9 +13,10 @@ import requests
 import json
 import datetime
 import configparser
-
-from flask import Flask, request, jsonify
 from threading import Thread
+from flask import Flask, request, jsonify
+from flask import Flask, Response, redirect, url_for, request, session, abort
+from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user 
 
 INPUT_DATA = []
 OUTPUT_DATA = []
@@ -31,7 +32,6 @@ globalParameter['LocalPort'] = 8821
 globalParameter['PreferredNetworks'] = ['192.168.15.','127.0.0.']
 globalParameter['BlockedNetworks'] = ['192.168.56.', '192.168.100.']
 globalParameter['LocalIp'] = socket.gethostbyname(socket.gethostname())
-app = Flask(__name__)
 
 globalParameter['INPUT_DATA_OFF'] = False
 globalParameter['OUTPUT_DATA_OFF'] = False
@@ -39,6 +39,19 @@ globalParameter['MAINLOOP_CONTROLLER'] = True
 globalParameter['MAINWEBSERVER'] = True
 globalParameter['MAINLOOP_SLEEP_SECONDS'] = 5.0
 globalParameter['PROCESS_JARVIS'] = None
+
+globalParameter['password'] = 'ghRW8n@KVp'
+globalParameter['secret_key'] = 'gVWx3*nmD@'
+
+app = Flask(__name__)
+app.config.update(DEBUG = False, SECRET_KEY = globalParameter['secret_key'])
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
+class User(UserMixin):
+    def __init__(self, id):
+        self.id = id
 
 class TestCases(unittest.TestCase):
     def test_webserver_fifo(self):
@@ -68,7 +81,7 @@ class TestCases(unittest.TestCase):
         data = []
         localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
         data.append({'time' : localTime , 'value' : value00})        
-        url = "http://" + globalParameter['LocalIp'] + ":" + str(globalParameter['LocalPort']) + "/exemple/input"
+        url = "http://" + globalParameter['LocalIp'] + ":" + str(globalParameter['LocalPort']) + "/example/input"
         headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
         data=json.dumps(data)
 
@@ -84,7 +97,7 @@ class TestCases(unittest.TestCase):
         time.sleep(globalParameter['MAINLOOP_SLEEP_SECONDS']+5)
         time.sleep(globalParameter['MAINLOOP_SLEEP_SECONDS']+5)
 
-        url = "http://" + globalParameter['LocalIp'] + ":" + str(globalParameter['LocalPort']) + "/exemple/output"
+        url = "http://" + globalParameter['LocalIp'] + ":" + str(globalParameter['LocalPort']) + "/example/output"
         response = app.get(url)
         data = response.data
         data = json.loads(data.decode("utf-8"))
@@ -111,18 +124,50 @@ def Run(command, parameters=None, wait=False):
 def RunJarvis(tags):
 	Run(globalParameter['PathExecutable'] + ' ' + globalParameter['PathJarvis'] + ' ' + tags, None, True)  
 
-@app.route('/exemple/table')
+@app.route('/example/restricted')
+@login_required
+def restricted():
+    return "unlock!"
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    global globalParameter
+
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']        
+        if password == globalParameter['password']:
+            id = 1
+            user = User(id)
+            login_user(user)
+            return redirect(request.args.get("next"))
+        else:
+            return Response('<p>Login failed</p>')
+    else:
+        return makeLoginPage('login')
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return Response('<p>Logged out</p>')
+
+@login_manager.user_loader
+def load_user(userid):
+    return User(userid)    
+
+@app.route('/example/table')
 def ExampleTable():
     res = makeTable()
     return res    
 
-@app.route('/exemple/chart')
+@app.route('/example/chart')
 def ExampleChart():
     res = makeChart()
     return res
 
-@app.route('/exemple/input', methods=['POST'])
-def ExempleInput():
+@app.route('/example/input', methods=['POST'])
+def exampleInput():
     global INPUT_DATA
     data = {}
 
@@ -133,8 +178,8 @@ def ExempleInput():
         INPUT_DATA.append(data)
     return jsonify(data)
 
-@app.route('/exemple/output')
-def ExempleOutput():
+@app.route('/example/output')
+def exampleOutput():
     global OUTPUT_DATA
     result = {}
 
@@ -144,8 +189,8 @@ def ExempleOutput():
 
     return jsonify(result)
 
-@app.route('/exemple/webhook', methods=['POST'])
-def ExempleWebhook():
+@app.route('/example/webhook', methods=['POST'])
+def exampleWebhook():
     global OUTPUT_DATA_WEBHOOK
     data = {}
 
@@ -155,8 +200,8 @@ def ExempleWebhook():
         OUTPUT_DATA_WEBHOOK.append(data['webhook'])
     return jsonify(data)
 
-@app.route('/exemple/post', methods=['POST'])
-def ExemplePost():
+@app.route('/example/post', methods=['POST'])
+def examplePost():
     data = {}
 
     if request.method == 'POST':    
@@ -219,8 +264,10 @@ def GetCorrectPath():
             config = configparser.ConfigParser()
             config.read_file(fp)
             sections = config.sections()
-            #for key in config['CriticalServices']:  
-            #    #print(config['CriticalServices'][key])
+            if('Parameters' in sections):
+                if('defaultpassword' in config['Parameters']):
+                    globalParameter['password'] = config['Parameters']['defaultpassword']
+                    print('password:' + globalParameter['password'])
 
 def makeTable():
     TITLE = 'TABLE'
@@ -255,6 +302,11 @@ def makeChart():
     VALUES = '15339,10,18483,24003,23489,24092,12034'
     PAGE_SCRIPT = "<script>(function () {  feather.replace({ 'aria-hidden': 'true' });  var ctx = document.getElementById('myChart');  var myChart = new Chart(ctx, {type: 'line',data: {labels: [  " + LABELS + "],datasets: [{  data: [" + VALUES + "  ],  lineTension: 0,  backgroundColor: 'transparent',  borderColor: '#007bff',  borderWidth: 4,  pointBackgroundColor: '#007bff'}]},options: {scales: {  yAxes: [{ticks: {beginAtZero: false}  }]},legend: {  display: false}}  });})();</script>"
     return makePage(TITLE, DATA, PAGE_SCRIPT)
+
+def makeLoginPage(TITLE):
+    ext_bootstrap_css = 'https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css'
+    res = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content=""><meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors"><meta name="generator" content="Hugo 0.84.0"><title>' + TITLE + '</title><link rel="canonical" href="https://getbootstrap.com/docs/5.0/examples/sign-in/"><link href="' + ext_bootstrap_css + '" rel="stylesheet"><style>html,body {height: 100%;}body {display: flex;align-items: center;padding-top: 40px;padding-bottom: 40px;background-color: #f5f5f5;}.form-signin {width: 100%;max-width: 330px;padding: 15px;margin: auto;}.form-signin .checkbox {font-weight: 400;}.form-signin .form-floating:focus-within {z-index: 2;}.form-signin input[type="text"] {margin-bottom: -1px;border-bottom-right-radius: 0;border-bottom-left-radius: 0;}.form-signin input[type="password"] {margin-bottom: 10px;border-top-left-radius: 0;border-top-right-radius: 0;}</style><style>.bd-placeholder-img {font-size: 1.125rem;text-anchor: middle;-webkit-user-select: none;-moz-user-select: none;user-select: none;}@media (min-width: 768px) {.bd-placeholder-img-lg {font-size: 3.5rem;}}</style></head><body class="text-center"><main class="form-signin"><form action="" method="post"> <h1 class="h3 mb-3 fw-normal">authentication</h1><div class="form-floating"><input type="text" class="form-control" name="username" id="floatingInput" placeholder="name"><label for="floatingInput">Login</label></div><div class="form-floating"><input type="password" class="form-control" name="password" id="floatingPassword" placeholder="Password"><label for="floatingPassword">Password</label></div><button class="w-100 btn btn-lg btn-primary" type="submit" value=Login>Login</button></form></main></body></html>'
+    return res    
 
 def makePage(TITLE, DATA, PAGE_SCRIPT = ''):
     ext_bootstrap_css = 'https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css'
