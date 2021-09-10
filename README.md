@@ -115,6 +115,7 @@ config.ini example
     PyCommand=python
     PyScripter=code
     BotIp=192.168.15.49:8805
+    defaultpassword=123456
 
     [CriticalServices]
     bla1=telegram -base=integration
@@ -122,3 +123,6 @@ config.ini example
     [Telegram]
     token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     alloweduser=@user
+
+Note1: defaultpassword is a simple and weak password for services.
+Note2: PyScripter=code use Visual Studio Code for edit code.

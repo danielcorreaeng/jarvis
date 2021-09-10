@@ -268,6 +268,9 @@ def GetCorrectPath():
                 if('defaultpassword' in config['Parameters']):
                     globalParameter['password'] = config['Parameters']['defaultpassword']
                     print('password:' + globalParameter['password'])
+                for key in config['Parameters']:  
+                    #print(config['Parameters'][key])    
+                    pass         
 
 def makeTable():
     TITLE = 'TABLE'
@@ -435,6 +438,7 @@ def Main():
 
     try:
         if(globalParameter['MAINWEBSERVER'] == True):
+            #app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'], ssl_context='adhoc') 
             app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort']) 
         pass
     except:
