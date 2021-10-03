@@ -32,6 +32,9 @@ globalParameter['LocalPort'] = 8821
 globalParameter['PreferredNetworks'] = ['192.168.15.','127.0.0.']
 globalParameter['BlockedNetworks'] = ['192.168.56.', '192.168.100.']
 globalParameter['LocalIp'] = socket.gethostbyname(socket.gethostname())
+globalParameter['LocalUsername'] = getpass.getuser().replace(' ','_')
+globalParameter['LocalHostname'] = socket.gethostname().replace(' ','_')
+globalParameter['PathDB'] = globalParameter['PathLocal'] + "\\Db\\" + globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] + ".db"
 
 globalParameter['INPUT_DATA_OFF'] = False
 globalParameter['OUTPUT_DATA_OFF'] = False
@@ -105,11 +108,53 @@ class TestCases(unittest.TestCase):
         globalParameter['MAINLOOP_CONTROLLER'] = False
         time.sleep(globalParameter['MAINLOOP_SLEEP_SECONDS']+5)     
 
+        db = MyDB()
+        rows = db.Select()
+
         check = True
         check = check and OUTPUT_DATA[0]['value'] == value01
         check = check and len(OUTPUT_DATA) == 1
         check = check and len(INPUT_DATA) == 0
+        check and len(rows) > 0
+
         self.assertTrue(check)    
+
+class MyException(Exception):
+    def __init__(self, value):
+        self.parameter = value
+    def __str__(self):
+        return repr(self.parameter)
+
+class MyDB():
+    def __init__(self):
+    	pass
+    def __del__(self):
+    	pass
+    def Select(self, id=None):
+        result = None
+
+        try:
+            db = globalParameter['PathDB']
+            conn = sqlite3.connect(db)
+            cursor = conn.cursor()
+
+            sql = "SELECT id,name,command,filetype FROM tag order by id desc"
+            if (id!=None):
+                sql = "SELECT id,name,command,filetype FROM tag WHERE id=" + id +  " order by id desc" 
+            
+            cursor.execute(sql)
+            result = rows = cursor.fetchall()
+
+            if(len(rows) > 0):
+                for row in rows:
+                    #print(row)
+                    pass
+
+            conn.close()
+        except:
+        	raise MyException("MyDb : Select : Internal Error.")
+
+        return result
 
 def Run(command, parameters=None, wait=False):
     #print(command)
@@ -205,16 +250,6 @@ def exampleWebhook():
         OUTPUT_DATA_WEBHOOK.append(data['webhook'])
     return jsonify(data)
 
-@app.route('/example/post', methods=['POST'])
-def examplePost():
-    data = {}
-
-    if request.method == 'POST':    
-        data = request.get_json(force=True)
-        data = data[0]        
-        print(data)
-    return jsonify(data)
-
 @app.route('/')
 def index():
     return str(Main.__doc__) + " | ip server : " +  globalParameter['LocalIp']
@@ -263,6 +298,7 @@ def GetCorrectPath():
     globalParameter['PathLocal'] = os.path.dirname(os.path.realpath(jarvis_file))
     globalParameter['PathJarvis'] = jarvis_file
     globalParameter['PathOutput'] = globalParameter['PathLocal'] + "\\Output"
+    globalParameter['PathDB'] = globalParameter['PathLocal'] + "\\Db\\" + globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] + ".db"
 
     if(os.path.isfile(ini_file) == True):
         with open(ini_file) as fp:
@@ -306,16 +342,18 @@ def makeTable():
 def makeGallery():
     TITLE = 'Gallery'
     PAGE_PAGE_CSS = '''<style>.column {  float: left;  width: 33.33%;  display: none;}.show {  display: block;}   </style>'''
+    PAGE_PAGE_CSS += '''<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"><script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script><script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>'''
     DATA =  '''<div id="myBtnContainer"><button type="button" class="btn btn-primary" onclick="filterSelection('all')"> Show all</button>&nbsp;<button type="button" class="btn btn-primary" onclick="filterSelection('nature')"> Nature</button>&nbsp;<button type="button" class="btn btn-primary" onclick="filterSelection('cars')"> Cars</button>&nbsp;<button type="button" class="btn btn-primary" onclick="filterSelection('people')"> People</button>&nbsp;  </div>  <br>&nbsp;<br>'''
     DATA += '''<div class="container"><div class="row"><div class="row">'''
-    DATA += '''<div class=" col-lg-3 col-md-4 col-xs-6 thumb column nature cars"><div class="content"><img src="https://www.w3schools.com/w3images/mountains.jpg" alt="Mountains" style="width:100%"><h4>Mountains</h4><p>tag</p></div></div>'''
-    DATA += '''<div class="col-lg-3 col-md-4 col-xs-6 thumb column nature"><div class="content"><img src="https://www.w3schools.com/w3images/lights.jpg" alt="Lights" style="width:100%"><h4>Lights</h4><p>Lorem ipsum dolor..</p></div></div>'''
-    DATA += '''<div class="col-lg-3 col-md-4 col-xs-6 thumb column nature"><div class="content"><img src="https://www.w3schools.com/w3images/nature.jpg" alt="Nature" style="width:100%"><h4>Forest</h4><p>Lorem ipsum dolor..</p></div></div>'''
-    DATA += '''<div class="col-lg-3 col-md-4 col-xs-6 thumb column cars"><div class="content"><img src="https://www.w3schools.com/w3images/cars1.jpg" alt="Car" style="width:100%"><h4>Retro</h4><p>Lorem ipsum dolor..</p></div></div>'''
-    DATA += '''<div class="col-lg-3 col-md-4 col-xs-6 thumb column cars"><div class="content"><img src="https://www.w3schools.com/w3images/cars2.jpg" alt="Car" style="width:100%"><h4>Fast</h4><p>Lorem ipsum dolor..</p></div></div>'''
-    DATA += '''<div class="col-lg-3 col-md-4 col-xs-6 thumb column people"><div class="content"><img src="https://www.w3schools.com/w3images/people1.jpg" alt="People" style="width:100%"><h4>Girl</h4><p>Lorem ipsum dolor..</p></div></div>'''
+    DATA += '''<div class=" col-lg-3 col-md-4 col-xs-6 thumb column nature cars"><div class="content"><a data-toggle="modal" data-target="#modal1" href="#" onclick="ImageToModal(1);return false;"><img id="img1" src="https://www.w3schools.com/w3images/mountains.jpg" alt="Mountains" style="width:100%"></a><h4>Mountains</h4><p>tag</p></div></div>'''
+    DATA += '''<div class="col-lg-3 col-md-4 col-xs-6 thumb column nature"><div class="content"><a data-toggle="modal" data-target="#modal1" href="#" onclick="ImageToModal(2);return false;"><img id="img2" src="https://www.w3schools.com/w3images/lights.jpg" alt="Lights" style="width:100%"></a><h4>Lights</h4><p>Lorem ipsum dolor..</p></div></div>'''
+    DATA += '''<div class="col-lg-3 col-md-4 col-xs-6 thumb column nature"><div class="content"><a data-toggle="modal" data-target="#modal1" href="#" onclick="ImageToModal(3);return false;"><img id="img3" src="https://www.w3schools.com/w3images/nature.jpg" alt="Nature" style="width:100%"></a><h4>Forest</h4><p>Lorem ipsum dolor..</p></div></div>'''
+    DATA += '''<div class="col-lg-3 col-md-4 col-xs-6 thumb column cars"><div class="content"><a data-toggle="modal" data-target="#modal1" href="#" onclick="ImageToModal(4);return false;"><img id="img4" src="https://www.w3schools.com/w3images/cars1.jpg" alt="Car" style="width:100%"></a><h4>Retro</h4><p>Lorem ipsum dolor..</p></div></div>'''
+    DATA += '''<div class="col-lg-3 col-md-4 col-xs-6 thumb column cars"><div class="content"><a data-toggle="modal" data-target="#modal1" href="#" onclick="ImageToModal(5);return false;"><img id="img5" src="https://www.w3schools.com/w3images/cars2.jpg" alt="Car" style="width:100%"></a><h4>Fast</h4><p>Lorem ipsum dolor..</p></div></div>'''
+    DATA += '''<div class="col-lg-3 col-md-4 col-xs-6 thumb column people"><div class="content"><a data-toggle="modal" data-target="#modal1" href="#" onclick="ImageToModal(6);return false;"><img id="img6" src="https://www.w3schools.com/w3images/people1.jpg" alt="People" style="width:100%"></a><h4>Girl</h4><p>Lorem ipsum dolor..</p></div></div>'''
     DATA += '''</div></div></div>'''  
-    PAGE_SCRIPT = '''<script>filterSelection("all");function filterSelection(c) {  var x, i;  x = document.getElementsByClassName("column");  if (c == "all") c = "";  for (i = 0; i < x.length; i++) {    w3RemoveClass(x[i], "show");    if (x[i].className.indexOf(c) > -1) w3AddClass(x[i], "show");  }}function w3AddClass(element, name) {  var i, arr1, arr2;  arr1 = element.className.split(" ");  arr2 = name.split(" ");  for (i = 0; i < arr2.length; i++) {    if (arr1.indexOf(arr2[i]) == -1) {      element.className += " " + arr2[i];    }  }}function w3RemoveClass(element, name) {  var i, arr1, arr2;  arr1 = element.className.split(" ");  arr2 = name.split(" ");  for (i = 0; i < arr2.length; i++) {    while (arr1.indexOf(arr2[i]) > -1) {      arr1.splice(arr1.indexOf(arr2[i]), 1);    }  }  element.className = arr1.join(" ");}</script>'''
+    DATA += '''<div class="modal fade" id="modal1" tabindex="1000" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"></div><div class="modal-body"><div id="divmodal1"><img id="imgmodal1" style="width:100%"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button></div></div></div></div>'''
+    PAGE_SCRIPT = '''<script>filterSelection("all");function filterSelection(c) {  var x, i;  x = document.getElementsByClassName("column");  if (c == "all") c = "";  for (i = 0; i < x.length; i++) {    w3RemoveClass(x[i], "show");    if (x[i].className.indexOf(c) > -1) w3AddClass(x[i], "show");  }}function w3AddClass(element, name) {  var i, arr1, arr2;  arr1 = element.className.split(" ");  arr2 = name.split(" ");  for (i = 0; i < arr2.length; i++) {    if (arr1.indexOf(arr2[i]) == -1) {      element.className += " " + arr2[i];    }  }}function w3RemoveClass(element, name) {  var i, arr1, arr2;  arr1 = element.className.split(" ");  arr2 = name.split(" ");  for (i = 0; i < arr2.length; i++) {    while (arr1.indexOf(arr2[i]) > -1) {      arr1.splice(arr1.indexOf(arr2[i]), 1);    }  }  element.className = arr1.join(" ");} function ImageToModal(id) { document.getElementById("imgmodal1").src=document.getElementById("img" + id).src; }</script>'''
     return makePage(TITLE, DATA, PAGE_SCRIPT,PAGE_PAGE_CSS)
 
 def makeChart():
