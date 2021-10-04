@@ -51,7 +51,7 @@ globalParameter['RemoteCmdDownload'] = 'rmt download'
 
 globalParameter['FileCommandModel'] = globalParameter['PathLocal']  + "\\model_command.py"
 globalParameter['FileServiceModel'] = globalParameter['PathLocal']  + "\\model_service.py"
-
+globalParameter['HideDatabase'] = ''
 
 def GetLocalFile():
 	globalParameter['LocalFile'] = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + "_" + str(randint(0, 999)) + globalParameter['ExtensionFile']
@@ -548,6 +548,16 @@ class Commands():
 					continue
 				
 				if(_dbtarget=='bkp' and self.myDb.dbParameters.changed == False):
+					continue
+
+				hide = globalParameter['HideDatabase'].split(',')
+
+				hiddenFound = False
+				for h in hide:
+					if(str(_dbtarget)==str(h) and self.myDb.dbParameters.changed == False):
+						hiddenFound = True
+						break
+				if(hiddenFound == True):
 					continue
 
 				self.myDb.CheckDb()
