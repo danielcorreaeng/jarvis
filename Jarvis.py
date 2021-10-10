@@ -29,6 +29,7 @@ globalParameter['PathOutput'] = globalParameter['PathLocal']  + "\\Output\\"
 
 globalParameter['PyCommand'] = sys.executable
 globalParameter['PyScripter'] = "spyder3"
+globalParameter['NotPyCommand'] = "explorer"
 
 testPlatform = "linux" in str(sys.platform)
 if testPlatform == True:
@@ -50,7 +51,7 @@ globalParameter['RemoteCmdDownload'] = 'rmt download'
 
 globalParameter['FileCommandModel'] = globalParameter['PathLocal']  + "\\model_command.py"
 globalParameter['FileServiceModel'] = globalParameter['PathLocal']  + "\\model_service.py"
-
+globalParameter['HideDatabase'] = ''
 
 def GetLocalFile():
 	globalParameter['LocalFile'] = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + "_" + str(randint(0, 999)) + globalParameter['ExtensionFile']
@@ -94,12 +95,29 @@ class MyDb():
 
 			db = self.dbParameters.db
 
-			if(os.path.isfile(db) == False):
-				conn = sqlite3.connect(db)
-				cursor = conn.cursor()
-				cursor.execute("CREATE TABLE tag (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, command BLOB)")
+			checkdb = os.path.isfile(db)
+			
+			conn = sqlite3.connect(db)
+			cursor = conn.cursor()		
+
+			if(checkdb == False):
+				sql = "CREATE TABLE tag (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, command BLOB, filetype  TEXT DEFAULT py)"
+				cursor.execute(sql)
 				conn.commit()
-				conn.close()
+			else:
+				sql = "SELECT COUNT(*) AS CNTREC FROM pragma_table_info('tag') WHERE name='filetype'"
+				cursor.execute(sql)
+				result = cursor.fetchall()[0][0]
+
+				if(int(result)==0):
+					sql = "ALTER TABLE tag ADD filetype TEXT DEFAULT py"
+					cursor.execute(sql)
+					conn.commit()
+					sql = "UPDATE tag SET filetype = 'py' WHERE id>0"
+					cursor.execute(sql)
+					conn.commit()
+
+			conn.close()
 
 			result = True
 		except:
@@ -108,13 +126,13 @@ class MyDb():
 		return result
 
 	def SelectCommandFromTag(self,name):
-		result = None
+		result = None, '.py'
 
 		try:
 			db = self.dbParameters.db
 			conn = sqlite3.connect(db)
 			cursor = conn.cursor()
-			sql = "SELECT id,command FROM tag WHERE name='" + name + "'"
+			sql = "SELECT id,command, filetype FROM tag WHERE name='" + name + "'"
 			cursor.execute(sql)
 
 			#_id, command = cursor.fetchone() #debug
@@ -122,7 +140,7 @@ class MyDb():
 			rows = cursor.fetchall()
 
 			if(len(rows) > 0):
-				result = rows[0][1]
+				result = rows[0][1], rows[0][2]
 
 			conn.close()
 		except:
@@ -139,8 +157,9 @@ class MyDb():
 			cursor = conn.cursor()
 
 			with open(inputFileBin, "rb") as input_file:
+				filetype = os.path.splitext(inputFileBin)[1][1:]
 				ablob = input_file.read()
-				cursor.execute("insert or replace into tag (id, name, command) values ((select id from tag where name = '"+ tag +"'),'"+ tag +"', ?)", [sqlite3.Binary(ablob)])
+				cursor.execute("insert or replace into tag (id, name, filetype, command) values ((select id from tag where name = '"+ tag +"'),'"+ tag +"','"+ filetype +"', ?)", [sqlite3.Binary(ablob)])
 				conn.commit()
 
 			conn.close()
@@ -160,12 +179,13 @@ class MyDb():
 			cursor = conn.cursor()
 
 			if(name!=None):
-				cursor.execute("SELECT name, command FROM tag WHERE name LIKE '%" + name + "%'")
+				cursor.execute("SELECT name, command, filetype FROM tag WHERE name LIKE '%" + name + "%'")
+				#sql = "select name, command from tag WHERE (name like '%extract%' and name like '%ppt%' and name like '%foo%')"
 			else:
-				cursor.execute("SELECT name, command FROM tag")
+				cursor.execute("SELECT name, command, filetype FROM tag")
 
 			for row in cursor.fetchall():
-				result.append([str(row[0]), row[1]])
+				result.append([str(row[0]), row[1], str(row[2])])
 				
 			conn.close()
 		except:
@@ -252,6 +272,9 @@ class JarvisUtils():
 				#proc = subprocess.Popen(command)		
 		except:
 			pass
+
+		if(waitReturn==False):
+			time.sleep(5)
 
 		self.log = False
 		return result
@@ -360,15 +383,17 @@ class Commands():
 		return commandfound
 
 	def _DoCommand(self, command, parameters=None):
+		global globalParameter
 
 		if os.path.exists (globalParameter['PathOutput'])== False:
 			os.mkdir (globalParameter['PathOutput'])
 
 		jv = JarvisUtils()
 
-		localFile = globalParameter['PathOutput'] + GetLocalFile()
+		_command, _filetype = self.myDb.SelectCommandFromTag(command)
 
-		_command = self.myDb.SelectCommandFromTag(command)
+		globalParameter['ExtensionFile'] = '.' + _filetype
+		localFile = globalParameter['PathOutput'] + GetLocalFile()
 
 		if(_command != None):
 
@@ -376,12 +401,15 @@ class Commands():
 			fileTest.write(_command)
 			fileTest.close()
 
-			_prog = globalParameter['PyCommand'] + " " + localFile
+			if(globalParameter['ExtensionFile'] == '.py'):
+				_prog = globalParameter['PyCommand'] + " " + localFile
+			else:
+				_prog = globalParameter['NotPyCommand'] + " " + localFile
 
 			if(parameters!=None):
 				_prog = _prog + " " + parameters
 
-			jv._Run(_prog)
+			jv._Run(_prog, True, globalParameter['ExtensionFile'] == '.py')
 
 			if(os.path.isfile(localFile) == True):
 			   os.remove(localFile)
@@ -439,7 +467,10 @@ class Commands():
 
 			print("tags : " + _command)
 
-			_command = self.myDb.SelectCommandFromTag(_command)
+			_command, _filetype = self.myDb.SelectCommandFromTag(_command)
+
+			globalParameter['ExtensionFile'] = '.' + _filetype
+			localFile = localFile + globalParameter['ExtensionFile']
 
 			if(_command != None):
 
@@ -464,7 +495,10 @@ class Commands():
 
 			print("tags : " + _tags)
 
-			_command = self.myDb.SelectCommandFromTag(_tags)
+			_command, _filetype  = self.myDb.SelectCommandFromTag(_tags)
+
+			globalParameter['ExtensionFile'] = '.' + _filetype
+			localFile = globalParameter['PathOutput'] + GetLocalFile()			
 
 			if(_command != None):
 
@@ -500,7 +534,7 @@ class Commands():
 				if(self.myDb.dbParameters.changed == False):										
 					dbParameters = MyDb.Parameters()
 					dbParameters.db = _dbtarget
-					self.myDb = MyDb(dbParameters)
+					self.myDb = MyDb(dbParameters)					
 
 				_dbtarget = os.path.basename(self.myDb.dbParameters.db)
 				_dbtarget = _dbtarget.replace('.db','')		
@@ -516,6 +550,17 @@ class Commands():
 				if(_dbtarget=='bkp' and self.myDb.dbParameters.changed == False):
 					continue
 
+				hide = globalParameter['HideDatabase'].split(',')
+
+				hiddenFound = False
+				for h in hide:
+					if(str(_dbtarget)==str(h) and self.myDb.dbParameters.changed == False):
+						hiddenFound = True
+						break
+				if(hiddenFound == True):
+					continue
+
+				self.myDb.CheckDb()
 				rows  = self.myDb.SelectListTagsLike(parameters)
 
 				if(len(rows)>0):
@@ -526,9 +571,11 @@ class Commands():
 					print("\n base=" + _dbtarget + "\n")
 
 					for row in rows:
-						_name, _command = row
+						_name, _command, _filetype = row
 						describe = ''
-						route = ''					
+						route = ''	
+						if(_filetype != "py"):
+							describe = '-->File .' + _filetype										
 
 						if(command == 'find' or command == 'route'):	
 
@@ -540,7 +587,7 @@ class Commands():
 							#print(test_help_001)
 							#print(test_help_002)
 
-							if(test_help_000>=0 and (test_help_001 or test_help_002)):
+							if(test_help_000 and (test_help_001 or test_help_002)):
 								fileTest = open(localFile,"wb")
 								fileTest.write(_command)
 								fileTest.close()
@@ -600,40 +647,6 @@ class Commands():
 
 			return True
 
-		elif(command == 'execute all' and False):
-			"""Not implemented"""
-			"""
-			rows  = self.myDb.SelectListTagsLike(parameters)
-
-			if(len(rows)>0):
-				filelist = []
-                                
-				for row in rows:
-					_name, _command = row
-					
-					localFile = globalParameter['PathOutput']  + GetLocalFile()
-                    
-					fileTest = open(localFile,"wb")
-					fileTest.write(_command)
-					fileTest.close()
-
-					_prog = globalParameter['PyCommand'] + " " + localFile
-
-					out = jv._Run(_prog, False, False)
-                    
-					filelist.append(localFile)
-
-					print(" " + _name)
-                    
-					time.sleep(1)
-
-				for _file in filelist:
-					if(os.path.isfile(_file) == True):
-					   os.remove(_file)
-					   pass
-            """
-			return True
-
 		elif(command == 'delete'or command == 'forget'):
 
 			_command = self.myDb.DeleteCommandFromTag(parameters)
@@ -647,7 +660,7 @@ class Commands():
 						
 		elif(command == 'save' or command == 'record' or command == 'record service' and parameters!=None and sys.platform == 'win32'):
 
-			_command = self.myDb.SelectCommandFromTag(parameters)
+			_command, _filetype = self.myDb.SelectCommandFromTag(parameters)
 
 			fileTest = None
 
@@ -664,8 +677,10 @@ class Commands():
 					_command = self.LoadFile(globalParameter['FileCommandModel'])
 				fileTest.write(_command)
 				fileTest.close()
-
 			else:
+				globalParameter['ExtensionFile'] = '.' + _filetype
+				localFile = globalParameter['PathOutput'] + GetLocalFile()
+
 				fileTest = open(localFile,"wb")
 				fileTest.write(_command)
 				fileTest.close()
@@ -808,14 +823,13 @@ def main(argv):
 		if(argv[idArg].find(stringArg) >= 0):
 			idTarget.append(idArg)
 			globalParameter['PyCommand'] = argv[idArg][argv[idArg].find(stringArg)+len(stringArg):]
-			globalParameter['PyScripter'] = globalParameter['PyCommand']			
+			globalParameter['PyScripter'] = globalParameter['PyCommand']
+			globalParameter['NotPyCommand'] = globalParameter['PyCommand']			
 			if(globalParameter['PyCommand'] == 'jupyter'):
 				globalParameter['PyCommand'] = 'jupyter notebook'
 				globalParameter['ExtensionFile'] = ".ipynb"
 				globalParameter['PyScripter'] = globalParameter['PyCommand']
-			elif(globalParameter['PyCommand'] == 'spyder3'):
-				globalParameter['PyCommand'] = 'py'
-				globalParameter['PyScripter'] = 'spyder3'
+				globalParameter['NotPyCommand'] = globalParameter['PyCommand']
 
 			print('pyCommand : ' + globalParameter['PyCommand'])
 			

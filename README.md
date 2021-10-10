@@ -116,6 +116,7 @@ config.ini example
     PyScripter=code
     BotIp=192.168.15.49:8805
     defaultpassword=123456
+    HideDatabase=hackertools,xxx 
 
     [CriticalServices]
     bla1=telegram -base=integration
@@ -126,3 +127,4 @@ config.ini example
 
 Note1: defaultpassword is a simple and weak password for services.
 Note2: PyScripter=code use Visual Studio Code for edit code.
+Note3: HideDatabase hides your command bases like list,find,route.
