@@ -124,7 +124,6 @@ config.ini example
     [Telegram]
     token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     alloweduser=@user
+    allowedrecordbase=telegram
 
-Note1: defaultpassword is a simple and weak password for services.
-Note2: PyScripter=code use Visual Studio Code for edit code.
-Note3: HideDatabase hides your command bases like list,find,route.
+Notes: defaultpassword is a simple and weak password for services. PyScripter=code use Visual Studio Code for edit code. HideDatabase hides your command bases like list,find,route.
