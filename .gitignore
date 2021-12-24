@@ -29,6 +29,7 @@ Python_Win/*
 Python_Linux/*
 Output/*
 Aiml/*
+External/*
 Db/temp/*
 Db/*
 Db\*
