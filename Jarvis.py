@@ -266,7 +266,7 @@ class JarvisUtils():
 				(out, err) = proc.communicate()
 				result = out
 				if(len(out)>0 and globalParameter['ProgramDisplayOut']==True):
-					print(out)                
+					print(str(out, 'utf-8'))          
 			else:                
 				proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
 				#proc = subprocess.Popen(command)		
@@ -843,6 +843,11 @@ def main(argv):
 			idTarget.append(idArg)
 			globalParameter['ProgramDisplayOut'] = True
 			print("display : true")			
+
+		stringArg = '-h'
+		if(argv[idArg].find(stringArg) >= 0):
+			globalParameter['ProgramDisplayOut'] = True
+			print("display : true")		
 
 		stringArg = '-user='
 		if(argv[idArg].find(stringArg) >= 0):

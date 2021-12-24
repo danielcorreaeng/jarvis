@@ -252,7 +252,7 @@ def exampleWebhook():
 
 @app.route('/')
 def index():
-    return str(Main.__doc__) + " | ip server : " +  globalParameter['LocalIp']
+    return str(Main.__doc__) + " | ip server : " +  str(globalParameter['LocalIp']) + ":" + str(globalParameter['LocalPort'])
 
 def GetCorrectIp(LocalIps):
     LocalIp = None
