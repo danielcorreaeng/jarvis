@@ -398,6 +398,9 @@ class Commands():
 			else:
 				_prog = globalParameter['NotPyCommand'] + " " + localFile
 
+			if('json' in globalParameter['ExtensionFile']):
+				print('read:' + str(_command))
+
 			#print([_prog, localFile, parameters ])
 
 			if(parameters!=None):
