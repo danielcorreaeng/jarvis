@@ -54,7 +54,11 @@ globalParameter['FileServiceModel'] = globalParameter['PathLocal']  + "\\model_s
 globalParameter['HideDatabase'] = ''
 
 def GetLocalFile():
-	globalParameter['LocalFile'] = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + "_" + str(randint(0, 999)) + globalParameter['ExtensionFile']
+	extension = globalParameter['ExtensionFile']
+	if('.' not in globalParameter['ExtensionFile']):
+		extension = '.' + globalParameter['ExtensionFile']
+
+	globalParameter['LocalFile'] = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + "_" + str(randint(0, 999)) + extension
 	return globalParameter['LocalFile']
 
 def CheckProcess(process_name_target):
@@ -382,6 +386,31 @@ class Commands():
 
 		return commandfound
 
+	def _RealyDoCommand(self, jv, _command, localFile, parameters):
+			global globalParameter
+
+			fileTest = open(localFile,"wb")
+			fileTest.write(_command)
+			fileTest.close()
+
+			if('py' in globalParameter['ExtensionFile']):
+				_prog = globalParameter['PyCommand'] + " " + localFile
+			else:
+				_prog = globalParameter['NotPyCommand'] + " " + localFile
+
+			#print([_prog, localFile, parameters ])
+
+			if(parameters!=None):
+				_prog = _prog + " " + parameters
+
+			jv._Run(_prog, True, 'py' in globalParameter['ExtensionFile'])
+
+			if(os.path.isfile(localFile) == True):
+				os.remove(localFile)
+				pass
+
+			return True		
+
 	def _DoCommand(self, command, parameters=None):
 		global globalParameter
 
@@ -396,25 +425,7 @@ class Commands():
 		localFile = globalParameter['PathOutput'] + GetLocalFile()
 
 		if(_command != None):
-
-			fileTest = open(localFile,"wb")
-			fileTest.write(_command)
-			fileTest.close()
-
-			if(globalParameter['ExtensionFile'] == '.py'):
-				_prog = globalParameter['PyCommand'] + " " + localFile
-			else:
-				_prog = globalParameter['NotPyCommand'] + " " + localFile
-
-			if(parameters!=None):
-				_prog = _prog + " " + parameters
-
-			jv._Run(_prog, True, globalParameter['ExtensionFile'] == '.py')
-
-			if(os.path.isfile(localFile) == True):
-			   os.remove(localFile)
-
-			return True
+			return self._RealyDoCommand(jv, _command, localFile, parameters)
 
 		elif(command == 'help'):
 			print("Hum... Let me try : ")
@@ -428,6 +439,7 @@ class Commands():
 			print(" find <tag0> : i try find in my memory <tag0> and describes.")
 			print(" copy <base> <tag0> : i copy <tag0> to <base>.")
 			print(" forget <tag0> : i forget <tag>... I think this.")
+			print(" like <tag0> : i try execute the code what it have some like <tag>.")
 			print(" ")
 			print(" <tag0> <tag1> -base=<base> : i execute the code what it have tags from <base>.")
 			print(" <tag0> <tag1> -display=true : i execute the code using the program display.")
@@ -441,6 +453,7 @@ class Commands():
 
 			localFile = None
 
+			#localFile = os.getcwd() + '\\' + parameters[0:parameters.index(" ")]
 			localFile = parameters[0:parameters.index(" ")]
 
 			print("file : " + localFile)
@@ -452,6 +465,8 @@ class Commands():
 			if(os.path.isfile(localFile) == True):
 				self.myDb.InsertTagWithFile(_parameters, localFile)
 				print("Hey your record is ok.")
+			else:
+				print("File didnt find! =S")
 
 			return True
 
@@ -526,7 +541,7 @@ class Commands():
 
 			return True
 
-		elif(command == 'find' or command == 'list'or command == 'route'):
+		elif(command == 'find' or command == 'list'or command == 'route' or command == 'like'):
 
 			_dbChecked = False
 			for _dbtarget in glob.glob(globalParameter['PathDB'] + "\\*.db"):
@@ -574,10 +589,12 @@ class Commands():
 						_name, _command, _filetype = row
 						describe = ''
 						route = ''	
+						globalParameter['ExtensionFile'] = _filetype
+
 						if(_filetype != "py"):
 							describe = '-->File .' + _filetype										
 
-						if(command == 'find' or command == 'route'):	
+						if(command == 'find' or command == 'route'  or command == 'like'):	
 
 							test_help_000 = str(_command).find("print(Main.__doc__)") >= 0
 							test_help_001 = str(_command).find("if(len(sys.argv) > 1)") >= 0
@@ -618,9 +635,9 @@ class Commands():
 									out = jv._Run(_prog + ' -h', False)
 
 								if(os.path.isfile(localFile) == True):
-								   os.remove(localFile)
-								   pass
-								
+									os.remove(localFile)
+									pass
+
 								describe = ""
 
 								if(out != ""):
@@ -636,7 +653,11 @@ class Commands():
 						else:
 							print(" " + _name + " -base=" + _dbtarget + " " + describe)
 						if(command == 'route'):
-							print("=======================================")						
+							print("=======================================")	
+
+						if(command == 'like'):
+							localFile = globalParameter['PathOutput'] + GetLocalFile()	
+							return self._RealyDoCommand(jv, _command, localFile, None)
 
 				if(self.myDb.dbParameters.changed == True):
 					break
