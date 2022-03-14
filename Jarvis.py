@@ -24,8 +24,8 @@ else:
 globalParameter = {}
 
 globalParameter['PathLocal'] = os.path.dirname(os.path.abspath(__file__))
-globalParameter['PathDB'] = globalParameter['PathLocal']  + "\\Db\\"
-globalParameter['PathOutput'] = globalParameter['PathLocal']  + "\\Output\\"
+globalParameter['PathDB'] = os.path.join(globalParameter['PathLocal'], "Db")
+globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'], "Output")
 
 globalParameter['PyCommand'] = sys.executable
 globalParameter['PyScripter'] = "spyder3"
@@ -33,8 +33,6 @@ globalParameter['NotPyCommand'] = "explorer"
 
 testPlatform = "linux" in str(sys.platform)
 if testPlatform == True:
-	globalParameter['PathOutput'] = globalParameter['PathLocal'] + "/Output/"
-	globalParameter['PathDB'] = globalParameter['PathLocal'] + "/Db/"
 	globalParameter['PyScripter'] = "notepadqq"
 
 globalParameter['ExtensionFile'] = ".py"
@@ -79,7 +77,7 @@ class MyDb():
 	class Parameters():
 		def __init__(self):
 			self.path = globalParameter['PathDB']
-			self.db = self.path  + globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] + ".db"
+			self.db = os.path.join(self.path, globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] + ".db")
 			self.changed = False
 			self.dbName = globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername']
 			pass
@@ -342,7 +340,7 @@ class Commands():
 			jarvisfile = __file__
 
 			jv = JarvisUtils()
-			localbaseTemp = globalParameter['PathOutput'] + GetLocalFile().replace(".py", ".db")
+			localbaseTemp = os.path.join(globalParameter['PathOutput'], GetLocalFile().replace(".py", ".db"))
 			_prog = globalParameter['PyCommand'] + " " + jarvisfile + " " + globalParameter['RemoteCmdDownload'] + " " + localbaseTemp + " " + self.parameters.dbParameters.dbName + ".db"
 			out = jv._Run(_prog)
 			
@@ -425,7 +423,7 @@ class Commands():
 		_command, _filetype = self.myDb.SelectCommandFromTag(command)
 
 		globalParameter['ExtensionFile'] = '.' + _filetype
-		localFile = globalParameter['PathOutput'] + GetLocalFile()
+		localFile = os.path.join(globalParameter['PathOutput'], GetLocalFile())
 
 		if(_command != None):
 			return self._RealyDoCommand(jv, _command, localFile, parameters)
@@ -516,7 +514,7 @@ class Commands():
 			_command, _filetype  = self.myDb.SelectCommandFromTag(_tags)
 
 			globalParameter['ExtensionFile'] = '.' + _filetype
-			localFile = globalParameter['PathOutput'] + GetLocalFile()			
+			localFile = os.path.join(globalParameter['PathOutput'], GetLocalFile())
 
 			if(_command != None):
 
@@ -547,7 +545,7 @@ class Commands():
 		elif(command == 'find' or command == 'list'or command == 'route' or command == 'like'):
 
 			_dbChecked = False
-			for _dbtarget in glob.glob(globalParameter['PathDB'] + "\\*.db"):
+			for _dbtarget in glob.glob(os.path.join(globalParameter['PathDB'], "*.db")):
 				
 				if(self.myDb.dbParameters.changed == False):										
 					dbParameters = MyDb.Parameters()
@@ -659,7 +657,7 @@ class Commands():
 							print("=======================================")	
 
 						if(command == 'like'):
-							localFile = globalParameter['PathOutput'] + GetLocalFile()	
+							localFile = os.path.join(globalParameter['PathOutput'], GetLocalFile())
 							return self._RealyDoCommand(jv, _command, localFile, None)
 
 				if(self.myDb.dbParameters.changed == True):
@@ -703,7 +701,7 @@ class Commands():
 				fileTest.close()
 			else:
 				globalParameter['ExtensionFile'] = '.' + _filetype
-				localFile = globalParameter['PathOutput'] + GetLocalFile()
+				localFile = os.path.join(globalParameter['PathOutput'], GetLocalFile())
 
 				fileTest = open(localFile,"wb")
 				fileTest.write(_command)
