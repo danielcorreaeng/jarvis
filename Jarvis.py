@@ -525,7 +525,7 @@ class Commands():
 				if(os.path.isfile(localFile) == True):
 					if(dbTarget != None):
 						dbParameters = MyDb.Parameters()
-						dbParameters.db = dbParameters.path  + "\\" + dbTarget + ".db"
+						dbParameters.db = os.path.join(dbParameters.path, dbTarget + ".db")
 
 						self.myDb = MyDb(dbParameters)
 						self.myDb.CheckDb()
@@ -710,7 +710,7 @@ class Commands():
 				#save bkp
 				if(os.path.isfile(localFile) == True):
 					dbParameters = MyDb.Parameters()
-					dbParameters.db = dbParameters.path  + "\\bkp.db"
+					dbParameters.db = os.path.join(dbParameters.path, "bkp.db")
 
 					bkpDb = MyDb(dbParameters)
 					bkpDb.CheckDb()
@@ -796,7 +796,7 @@ def main(argv):
 	idTarget = []
 	dbTarget = None
 	
-	fileConfiName = globalParameter['PathLocal'] + "\\config.ini"
+	fileConfiName = os.path.join(globalParameter['PathLocal'], "config.ini")
 	if(os.path.isfile(fileConfiName)):
 
 		if (sys.version_info > (3, 0)):
@@ -888,7 +888,7 @@ def main(argv):
 
 	dbParameters = MyDb.Parameters()
 	if(dbTarget != None):
-		dbParameters.db = dbParameters.path  + "\\" + dbTarget + ".db"
+		dbParameters.db = os.path.join(dbParameters.path, dbTarget + ".db")
 		dbParameters.dbName = dbTarget
 		dbParameters.changed = True
 
