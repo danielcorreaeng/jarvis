@@ -127,9 +127,9 @@ class MyException(Exception):
 
 class MyDB():
     def __init__(self):
-    	pass
+        pass
     def __del__(self):
-    	pass
+        pass
     def Select(self, id=None):
         result = None
 
@@ -152,16 +152,16 @@ class MyDB():
 
             conn.close()
         except:
-        	raise MyException("MyDb : Select : Internal Error.")
+            raise MyException("MyDb : Select : Internal Error.")
 
         return result
 
 def Run(command, parameters=None, wait=False):
     #print(command)
     if(parameters != None):
-    	proc = subprocess.Popen([command, parameters], stdout=subprocess.PIPE, shell=None)
+        proc = subprocess.Popen([command, parameters], stdout=subprocess.PIPE, shell=None)
     else:
-    	proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=None)
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=None)
 
     if(wait == True):
         proc.communicate()
@@ -311,8 +311,10 @@ def GetCorrectPath():
                     globalParameter['password'] = config['Parameters']['defaultpassword']
                     print('password:' + globalParameter['password'])
                 for key in config['Parameters']:  
-                    #print(config['Parameters'][key])    
-                    pass         
+                    for globalParameter_key in globalParameter:    
+                        if globalParameter_key.lower()==key.lower():
+                            globalParameter[globalParameter_key]=str(config['Parameters'][key])
+                            print(key + "=" + str(config['Parameters'][key]))                
 
 def makeTable():
     TITLE = 'TABLE'
