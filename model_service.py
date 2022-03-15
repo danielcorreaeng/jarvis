@@ -23,9 +23,9 @@ OUTPUT_DATA = []
 OUTPUT_DATA_WEBHOOK = []
 
 globalParameter = {}
-globalParameter['PathLocal'] ="C:\\Jarvis"
-globalParameter['PathJarvis'] = "C:\\Jarvis\\Jarvis.py"
-globalParameter['PathOutput'] = globalParameter['PathLocal'] + "\\Output"
+globalParameter['PathLocal'] = os.path.join("C:\\","Jarvis")
+globalParameter['PathJarvis'] = os.path.join("C:\\","Jarvis","Jarvis.py")
+globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'], "Output")
 globalParameter['PathExecutable'] = "python"
 
 globalParameter['LocalPort'] = 8821
@@ -34,7 +34,7 @@ globalParameter['BlockedNetworks'] = ['192.168.56.', '192.168.100.']
 globalParameter['LocalIp'] = socket.gethostbyname(socket.gethostname())
 globalParameter['LocalUsername'] = getpass.getuser().replace(' ','_')
 globalParameter['LocalHostname'] = socket.gethostname().replace(' ','_')
-globalParameter['PathDB'] = globalParameter['PathLocal'] + "\\Db\\" + globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] + ".db"
+globalParameter['PathDB'] = os.path.join(globalParameter['PathLocal'], "Db" , globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] + ".db")
 
 globalParameter['INPUT_DATA_OFF'] = False
 globalParameter['OUTPUT_DATA_OFF'] = False
@@ -286,19 +286,20 @@ def GetCorrectPath():
     dir_path = os.path.dirname(os.path.realpath(__file__)) 
     os.chdir(dir_path)
 
-    jarvis_file = dir_path + '\\Jarvis.py'
-    ini_file = dir_path + '\\config.ini'
+    jarvis_file = os.path.join(dir_path, 'Jarvis.py')
+    ini_file = os.path.join(dir_path, 'config.ini')
     if(os.path.isfile(jarvis_file) == False):
-        jarvis_file = dir_path + '\\..\\Jarvis.py'
-        ini_file = dir_path + '\\..\\config.ini'
+        jarvis_file = os.path.join(dir_path, '..', 'Jarvis.py')
+        ini_file = os.path.join(dir_path, '..', 'config.ini')
         if(os.path.isfile(jarvis_file) == False):
             return
     
     globalParameter['PathExecutable'] = sys.executable
     globalParameter['PathLocal'] = os.path.dirname(os.path.realpath(jarvis_file))
     globalParameter['PathJarvis'] = jarvis_file
-    globalParameter['PathOutput'] = globalParameter['PathLocal'] + "\\Output"
-    globalParameter['PathDB'] = globalParameter['PathLocal'] + "\\Db\\" + globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] + ".db"
+    #print(globalParameter['PathJarvis'])
+    globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'], "Output")
+    globalParameter['PathDB'] = os.path.join(globalParameter['PathLocal'], "Db", globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] + ".db")
 
     if(os.path.isfile(ini_file) == True):
         with open(ini_file) as fp:
@@ -448,7 +449,7 @@ def mainThread():
         try:                 
             mainLoop()
             time.sleep(globalParameter['MAINLOOP_SLEEP_SECONDS']) 
-            #print('Loop')
+            print('Loop')
         except:
             print('Error Loop')
     pass
@@ -460,8 +461,8 @@ def mainLoopProcess(input_data):
     result = None
 
     if(globalParameter['PROCESS_JARVIS'] != None):
-        fileInput = globalParameter['PathOutput'] + "\\" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f_in.json")
-        fileOutput = globalParameter['PathOutput'] + "\\" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f_out.json")
+        fileInput = os.path.join(globalParameter['PathOutput'] , datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f_in.json"))
+        fileOutput = os.path.join(globalParameter['PathOutput'] , datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f_out.json"))
 
         with open(fileInput, "w") as outfile:                    
             json_string = json.dumps(input_data, default=lambda o: o.__dict__, sort_keys=True, indent=2)
