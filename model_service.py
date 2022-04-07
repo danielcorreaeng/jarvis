@@ -487,8 +487,9 @@ def Main():
     
     GetCorrectPath()
 
-    try:        
-        globalParameter['LocalIp'] = GetCorrectIp(socket.gethostbyname_ex(socket.gethostname()))
+    try:
+        if(globalParameter['LocalIp'] == None):        
+            globalParameter['LocalIp'] = GetCorrectIp(socket.gethostbyname_ex(socket.gethostname()))
     except:
         print('error ip')
         
@@ -510,6 +511,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=Main.__doc__)
     parser.add_argument('-d','--description', help='Description of program', action='store_true')
     parser.add_argument('-u','--tests', help='Execute tests', action='store_true')
+    parser.add_argument('-p','--port', help='Service running in target port')
+    parser.add_argument('-i','--ip', help='Service running in target ip')    
     
     args, unknown = parser.parse_known_args()
     args = vars(args)
@@ -524,7 +527,15 @@ if __name__ == '__main__':
         runner = unittest.TextTestRunner()
         runner.run(suite)  
         globalParameter['MAINLOOP_CONTROLLER'] = False             
-        sys.exit()        
+        sys.exit()     
+
+    if args['port'] is not None:
+        print('TargetPort: ' + args['port'])
+        globalParameter['LocalPort'] = args['port']  
+
+    if args['ip'] is not None:
+        print('TargetIP: ' + args['ip'])
+        globalParameter['LocalIp'] = args['ip']                 
 
     param = ' '.join(unknown)
 

@@ -12,6 +12,7 @@ import getpass
 import json
 import glob
 import psutil
+import shutil
 from random import randint
 
 if (sys.version_info > (3, 0)):
@@ -47,8 +48,8 @@ globalParameter['LoggerIp'] = str(socket.gethostbyname(socket.gethostname())) + 
 globalParameter['RemoteCmdUpload'] = 'rmt upload'
 globalParameter['RemoteCmdDownload'] = 'rmt download'
 
-globalParameter['FileCommandModel'] = globalParameter['PathLocal']  + "\\model_command.py"
-globalParameter['FileServiceModel'] = globalParameter['PathLocal']  + "\\model_service.py"
+globalParameter['FileCommandModel'] = os.path.join(globalParameter['PathLocal'], "model_command.py")
+globalParameter['FileServiceModel'] = os.path.join(globalParameter['PathLocal'], "model_service.py")
 globalParameter['HideDatabase'] = ''
 
 def GetLocalFile():
@@ -697,6 +698,11 @@ class Commands():
 						_command = self.LoadFile(globalParameter['FileServiceModel'])
 				elif os.path.exists(globalParameter['FileCommandModel']) == True:
 					_command = self.LoadFile(globalParameter['FileCommandModel'])
+					if(os.path.isfile(globalParameter['FileServiceModel'])):
+						#try:
+						shutil.copy(globalParameter['FileServiceModel'], globalParameter['PathOutput'])
+						#except:
+						#	pass
 				fileTest.write(_command)
 				fileTest.close()
 			else:
