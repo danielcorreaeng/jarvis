@@ -413,6 +413,20 @@ class Commands():
 
 			return True		
 
+	def _InsertTagWithFile(self, tag, _localfile, basetarget=None):
+		if(os.path.isfile(_localfile) == True):
+
+			if(basetarget != None):
+				dbParameters = MyDb.Parameters()
+				dbParameters.db = os.path.join(dbParameters.path, basetarget + ".db")
+				self.myDb = MyDb(dbParameters)
+				self.myDb.CheckDb()
+
+			self.myDb.InsertTagWithFile(tag, _localfile)
+			print("Hey your record is ok.\n")
+		else:
+			print("File didnt find! =S\n")
+
 	def _DoCommand(self, command, parameters=None):
 		global globalParameter
 
@@ -472,7 +486,153 @@ class Commands():
 
 			return True
 
+		elif(command == 'readpath' and parameters!=None):
+
+			localPath = None
+			localPath = parameters[0:]
+
+			print("path : " + localPath + "\n")
+
+			if(os.path.isdir(localPath) == False):
+				print("Sorryyy... I need a dir")
+
+			for _localfile in glob.glob(os.path.join(localPath, "*")):
+
+				if(os.path.isdir(_localfile) == True):
+					for _localfile2 in glob.glob(os.path.join(_localfile, "*")):
+						basetarget = os.path.basename(os.path.dirname(_localfile2))
+						print("base target : " + basetarget)
+
+						filename = os.path.splitext(os.path.basename(_localfile2))[0]
+						print("file name : " + filename)
+						tag = filename.replace("_"," ")
+
+						self._InsertTagWithFile(tag, _localfile2, basetarget)
+				else:
+					basetarget = os.path.basename(os.path.dirname(_localfile))
+					print("base target : " + basetarget)
+
+					filename = os.path.splitext(os.path.basename(_localfile))[0]
+					print("file name : " + filename)
+					tag = filename.replace("_"," ")
+
+					self._InsertTagWithFile(tag, _localfile, basetarget)
+
+			return True
+			
 		elif(command == 'write' and parameters!=None):
+
+			localFile = None
+
+			localFile = parameters[0:parameters.index(" ")]
+
+			print("file : " + localFile)
+
+			_command = parameters[parameters.index(" ")+1:]
+
+			print("tags : " + _command)
+
+			_command, _filetype = self.myDb.SelectCommandFromTag(_command)
+
+			globalParameter['ExtensionFile'] = '.' + _filetype
+			localFile = localFile + globalParameter['ExtensionFile']
+
+			if(_command != None):
+
+				fileTest = open(localFile,"wb")
+				fileTest.write(_command)
+				fileTest.close()
+
+				print("Ok. File save in " + localFile)
+
+			else:
+				print("Ops. I did not find commands in this tags.")
+
+			return True
+
+		elif(command == 'writepath' and parameters!=None):
+
+			localPath = None
+			localPath = parameters[0:]
+
+			print("path : " + localPath + "\n")
+
+			if(os.path.isdir(localPath) == False):
+				print("Sorryyy... I need a dir")			
+
+			_dbChecked = False
+			for _dbtarget in glob.glob(os.path.join(globalParameter['PathDB'], "*.db")):
+				
+				if(self.myDb.dbParameters.changed == False):										
+					dbParameters = MyDb.Parameters()
+					dbParameters.db = _dbtarget
+					self.myDb = MyDb(dbParameters)					
+
+				_dbtarget = os.path.basename(self.myDb.dbParameters.db)
+				_dbtarget = _dbtarget.replace('.db','')		
+					
+				#hide other user #todo: create protection between user
+				if(_dbtarget.find(globalParameter['LocalHostname'])>=0):
+					if(_dbtarget.find(globalParameter['LocalUsername'])<0):
+						continue
+
+				if(_dbtarget=='log'):
+					continue
+				
+				if(_dbtarget=='bkp' and self.myDb.dbParameters.changed == False):
+					continue
+
+				hide = globalParameter['HideDatabase'].split(',')
+
+				hiddenFound = False
+				for h in hide:
+					if(str(_dbtarget)==str(h) and self.myDb.dbParameters.changed == False):
+						hiddenFound = True
+						break
+				if(hiddenFound == True):
+					continue
+
+				self.myDb.CheckDb()
+				rows  = self.myDb.SelectListTagsLike("")
+
+				if(len(rows)>0):
+					if(_dbChecked == False):
+						print("Hey. I find and write : ")
+						_dbChecked = True
+					
+					print("\n base=" + _dbtarget + "\n")
+
+					for row in rows:
+						_name, _command, _filetype = row
+						describe = ''
+						route = ''	
+						globalParameter['ExtensionFile'] = _filetype
+
+						describe = '-->File .' + _filetype	
+
+						_filename = _name.replace(" ", "_") + "." + _filetype
+						pathtarget = os.path.join(localPath, _dbtarget)
+						localFile = os.path.join(pathtarget, _filename)
+
+						if os.path.isdir(pathtarget) == False:
+							os.mkdir(pathtarget)					
+
+						fileTest = open(localFile,"wb")
+						fileTest.write(_command)
+						fileTest.close()
+
+						if(globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] == _dbtarget):
+							print(" " + _name+ " " + describe)
+						else:
+							print(" " + _name + " -base=" + _dbtarget + " " + describe)
+
+				if(self.myDb.dbParameters.changed == True):
+					break
+
+			if(_dbChecked == False):
+				print("Hum... Sorry, this order didnt find in my memory.")
+
+			return True			
 
 			localFile = None
 
@@ -534,7 +694,7 @@ class Commands():
 						self.myDb.InsertTagWithFile(_tags, localFile)
 
 				if(os.path.isfile(localFile) == True):
-				   os.remove(localFile)
+					os.remove(localFile)
 
 				print("Ok. Save " + _tags + " in " + dbTarget)
 
