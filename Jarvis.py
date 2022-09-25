@@ -50,6 +50,7 @@ globalParameter['RemoteCmdDownload'] = 'rmt download'
 
 globalParameter['FileCommandModel'] = os.path.join(globalParameter['PathLocal'], "model_command.py")
 globalParameter['FileServiceModel'] = os.path.join(globalParameter['PathLocal'], "model_service.py")
+globalParameter['FileUtils'] = os.path.join(globalParameter['PathLocal'], "model_service.py")
 globalParameter['HideDatabase'] = ''
 
 def GetLocalFile():
@@ -498,12 +499,18 @@ class Commands():
 
 			for _localfile in glob.glob(os.path.join(localPath, "*")):
 
+				fileUtils =  os.path.splitext(os.path.basename(globalParameter['FileUtils']))[0]
+
 				if(os.path.isdir(_localfile) == True):
 					for _localfile2 in glob.glob(os.path.join(_localfile, "*")):
 						basetarget = os.path.basename(os.path.dirname(_localfile2))
 						print("base target : " + basetarget)
 
 						filename = os.path.splitext(os.path.basename(_localfile2))[0]
+
+						if(fileUtils == filename):
+							continue
+
 						print("file name : " + filename)
 						tag = filename.replace("_"," ")
 
@@ -513,6 +520,10 @@ class Commands():
 					print("base target : " + basetarget)
 
 					filename = os.path.splitext(os.path.basename(_localfile))[0]
+
+					if(fileUtils == filename):
+						continue
+
 					print("file name : " + filename)
 					tag = filename.replace("_"," ")
 
@@ -602,6 +613,9 @@ class Commands():
 					
 					print("\n base=" + _dbtarget + "\n")
 
+					if(os.path.isfile(globalParameter['FileUtils'])):
+						shutil.copy(globalParameter['FileUtils'], os.path.join(localPath, _dbtarget))
+
 					for row in rows:
 						_name, _command, _filetype = row
 						describe = ''
@@ -633,34 +647,6 @@ class Commands():
 				print("Hum... Sorry, this order didnt find in my memory.")
 
 			return True			
-
-			localFile = None
-
-			localFile = parameters[0:parameters.index(" ")]
-
-			print("file : " + localFile)
-
-			_command = parameters[parameters.index(" ")+1:]
-
-			print("tags : " + _command)
-
-			_command, _filetype = self.myDb.SelectCommandFromTag(_command)
-
-			globalParameter['ExtensionFile'] = '.' + _filetype
-			localFile = localFile + globalParameter['ExtensionFile']
-
-			if(_command != None):
-
-				fileTest = open(localFile,"wb")
-				fileTest.write(_command)
-				fileTest.close()
-
-				print("Ok. File save in " + localFile)
-
-			else:
-				print("Ops. I did not find commands in this tags.")
-
-			return True
 
 		elif(command == 'copy' and parameters!=None):
 
@@ -858,9 +844,9 @@ class Commands():
 						_command = self.LoadFile(globalParameter['FileServiceModel'])
 				elif os.path.exists(globalParameter['FileCommandModel']) == True:
 					_command = self.LoadFile(globalParameter['FileCommandModel'])
-					if(os.path.isfile(globalParameter['FileServiceModel'])):
+					if(os.path.isfile(globalParameter['FileUtils'])):
 						#try:
-						shutil.copy(globalParameter['FileServiceModel'], globalParameter['PathOutput'])
+						shutil.copy(globalParameter['FileUtils'], globalParameter['PathOutput'])
 						#except:
 						#	pass
 				fileTest.write(_command)
