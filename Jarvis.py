@@ -452,6 +452,8 @@ class Commands():
 			print(" record service <tag0> <tag1> : i try open editor code (with service model) and i will record it with tags.")
 			print(" read <file> <tag0> <tag1> : give me a file and i record with <tag0> <tag1>. ")
 			print(" write <file> <tag0> <tag1> : i save the code in <file>.")
+			print(" readpath <path> : give me a path and i will record all files in my base <path>")
+			print(" writepath <path> : i will save all codes in <path>.")
 			print(" list <tag0> : i try find in my memory <tag0>.")
 			print(" find <tag0> : i try find in my memory <tag0> and describes.")
 			print(" copy <base> <tag0> : i copy <tag0> to <base>.")
@@ -614,7 +616,10 @@ class Commands():
 					print("\n base=" + _dbtarget + "\n")
 
 					if(os.path.isfile(globalParameter['FileUtils'])):
-						shutil.copy(globalParameter['FileUtils'], os.path.join(localPath, _dbtarget))
+						pathtarget = os.path.join(localPath, _dbtarget)
+						if os.path.isdir(pathtarget) == False:
+							os.mkdir(pathtarget)	
+						shutil.copy(globalParameter['FileUtils'], pathtarget)
 
 					for row in rows:
 						_name, _command, _filetype = row

@@ -18,7 +18,7 @@ Try:
 
     python Jarvis.py help
  
-Result:
+Result (like):
 
 	Hum... Let me try :
          <tag0> <tag1> : i execute the code what it have <tag0> <tag1>.
@@ -61,6 +61,10 @@ For instalation, you will install the requirements **in path of Jarvis**.
 Test application.
 
     python Jarvis.py find
+
+Create default base (bot, services).
+
+    python readpath DefaultDb
     
 You can create a **bat file** to make the commands easier. Something like this command. 
 
