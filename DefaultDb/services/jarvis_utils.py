@@ -23,10 +23,12 @@ OUTPUT_DATA = []
 OUTPUT_DATA_WEBHOOK = []
 
 globalParameter = {}
+globalParameter['FileJarvis'] = "Jarvis.py"
 globalParameter['PathLocal'] = os.path.join("C:\\","Jarvis")
-globalParameter['PathJarvis'] = os.path.join("C:\\","Jarvis","Jarvis.py")
+globalParameter['PathJarvis'] = os.path.join("C:\\","Jarvis", globalParameter['FileJarvis'])
 globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'], "Output")
 globalParameter['PathExecutable'] = "python"
+globalParameter['configFile'] = "config.ini"
 
 globalParameter['LocalPort'] = 8821
 globalParameter['PreferredNetworks'] = ['192.168.15.','127.0.0.']
@@ -39,8 +41,8 @@ globalParameter['PathDB'] = os.path.join(globalParameter['PathLocal'], "Db" , gl
 globalParameter['INPUT_DATA_OFF'] = False
 globalParameter['OUTPUT_DATA_OFF'] = False
 globalParameter['MAINLOOP_CONTROLLER'] = True
-globalParameter['MAINWEBSERVER'] = True
 globalParameter['MAINLOOP_SLEEP_SECONDS'] = 5.0
+globalParameter['MAINWEBSERVER'] = True
 globalParameter['PROCESS_JARVIS'] = None
 
 globalParameter['password'] = 'ghRW8n@KVp'
@@ -74,7 +76,7 @@ class TestCases(unittest.TestCase):
 
         RunJarvis('record ' + globalParameter['PROCESS_JARVIS'] + ' -program=dump')
 
-        Main()
+        MainTest()
 
         value00 = 'data00'
         value01 = 'data01'
@@ -180,7 +182,7 @@ def login():
 
     if request.method == 'POST':
         username = request.form['username']
-        password = request.form['password']        
+        password = request.form['password']    
         if password == globalParameter['password']:
             id = 1
             user = User(id)
@@ -250,10 +252,6 @@ def exampleWebhook():
         OUTPUT_DATA_WEBHOOK.append(data['webhook'])
     return jsonify(data)
 
-@app.route('/')
-def index():
-    return str(Main.__doc__) + " | ip server : " +  str(globalParameter['LocalIp']) + ":" + str(globalParameter['LocalPort'])
-
 def GetCorrectIp(LocalIps):
     LocalIp = None
     
@@ -286,13 +284,16 @@ def GetCorrectPath():
     dir_path = os.path.dirname(os.path.realpath(__file__)) 
     os.chdir(dir_path)
 
-    jarvis_file = os.path.join(dir_path, 'Jarvis.py')
-    ini_file = os.path.join(dir_path, 'config.ini')
+    jarvis_file = os.path.join(dir_path, globalParameter['FileJarvis'])
+    ini_file = os.path.join(dir_path, globalParameter['configFile'])
     if(os.path.isfile(jarvis_file) == False):
-        jarvis_file = os.path.join(dir_path, '..', 'Jarvis.py')
-        ini_file = os.path.join(dir_path, '..', 'config.ini')
+        jarvis_file = os.path.join(dir_path, '..', globalParameter['FileJarvis'])
+        ini_file = os.path.join(dir_path, '..', globalParameter['configFile'])
         if(os.path.isfile(jarvis_file) == False):
-            return
+            jarvis_file = os.path.join(dir_path, '..', '..', globalParameter['FileJarvis'])
+            ini_file = os.path.join(dir_path, '..', '..', globalParameter['configFile'])
+            if(os.path.isfile(jarvis_file) == False):
+                return
     
     globalParameter['PathExecutable'] = sys.executable
     globalParameter['PathLocal'] = os.path.dirname(os.path.realpath(jarvis_file))
@@ -480,7 +481,7 @@ def mainLoopProcess(input_data):
  
     return result
 
-def Main():
+def MainTest():
     """no describe"""    
 
     global globalParameter
@@ -506,7 +507,8 @@ def Main():
         pass
     except:
         print('error webservice')
-    
+
+'''
 if __name__ == '__main__':   
     parser = argparse.ArgumentParser(description=Main.__doc__)
     parser.add_argument('-d','--description', help='Description of program', action='store_true')
@@ -540,3 +542,4 @@ if __name__ == '__main__':
     param = ' '.join(unknown)
 
     Main()
+'''

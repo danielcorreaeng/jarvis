@@ -36,7 +36,7 @@ Result (like):
          
 In short, you create a new command (default editor spyder3) with **Jarvis.py create tag** and then run it with **Jarvis.py tag**
 
-Chatbot is a command-enabled microservice in default base.
+Chatbot is a command-enabled microservice in default base (it is necessary to install the default base).
     
     python Jarvis.py chatbot -base=services
 
