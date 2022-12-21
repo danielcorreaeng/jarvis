@@ -93,6 +93,8 @@ def Main(TARGET_EMAIL, SUBJECT, ATTACH, MESSAGE):
     OUTPUT_DATA['EMAIL_SERVER'] = globalParameter['EMAIL_SERVER']
     OUTPUT_DATA['EMAIL_PORT'] = globalParameter['EMAIL_PORT']
 
+    #globalsub.subs(LoadVarsIni, LoadVarsIni2)
+
     try:
         SendEmail(globalParameter['EMAIL_SENDER'], globalParameter['EMAIL_PWD'], TARGET_EMAIL, SUBJECT, ATTACH, MESSAGE, globalParameter['EMAIL_SERVER'], globalParameter['EMAIL_PORT'])
         pass

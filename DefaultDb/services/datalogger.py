@@ -245,6 +245,8 @@ def Main():
 
     global globalParameter
     
+    #globalsub.subs(LoadVarsIni, LoadVarsIni2)
+
     GetCorrectPath()
     FixVars()
 
@@ -278,7 +280,7 @@ if __name__ == '__main__':
 
     if args['tests'] == True:       
         suite = unittest.TestSuite()
-        #suite.addTest(TestCases_Local("test_webserver_fifo")) 
+        suite.addTest(TestCases_Local("test_webserver_fifo")) 
         suite.addTest(TestCases_Local("test_dump")) 
         runner = unittest.TextTestRunner()
         runner.run(suite)             

@@ -9,6 +9,7 @@ import io
 import operator
 from jarvis_utils import *
 
+
 globalParameter['INPUT_DATA_OFF'] = False
 globalParameter['OUTPUT_DATA_OFF'] = False
 globalParameter['MAINLOOP_CONTROLLER'] = False
@@ -254,6 +255,8 @@ def Main():
     """view the images from the database in web (/gallery or /table). Optional parameters: -t (--target) to select a base -p (--port) to select target port """    
 
     global globalParameter
+
+    #globalsub.subs(LoadVarsIni, LoadVarsIni2)
     
     GetCorrectPath()
 

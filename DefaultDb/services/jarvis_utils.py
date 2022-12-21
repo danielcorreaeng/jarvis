@@ -13,6 +13,8 @@ import requests
 import json
 import datetime
 import configparser
+import base64
+import globalsub
 from threading import Thread
 from flask import Flask, request, jsonify
 from flask import Flask, Response, redirect, url_for, request, session, abort
@@ -169,7 +171,8 @@ def Run(command, parameters=None, wait=False):
         proc.communicate()
 
 def RunJarvis(tags):
-	Run(globalParameter['PathExecutable'] + ' ' + globalParameter['PathJarvis'] + ' ' + tags, None, True)  
+    Run(globalParameter['PathExecutable'] + ' ' + globalParameter['PathJarvis'] + ' ' + tags, None, True) 
+    print('command : ' + globalParameter['PathExecutable'] + ' ' + globalParameter['PathJarvis'] + ' ' + tags) 
 
 @app.route('/example/restricted')
 @login_required
@@ -278,6 +281,21 @@ def GetCorrectIp(LocalIps):
     
     return LocalIp
 
+
+def GetPublicIp():
+    ippublic = ''
+    try:
+        ippublic = get('https://api.ipify.org').text
+        ippublic = str(ippublic)
+    except:
+        pass
+        
+    return ippublic
+
+def LoadVarsIni(config,sections):
+    print("test")
+    pass
+
 def GetCorrectPath():
     global globalParameter
 
@@ -315,7 +333,8 @@ def GetCorrectPath():
                     for globalParameter_key in globalParameter:    
                         if globalParameter_key.lower()==key.lower():
                             globalParameter[globalParameter_key]=str(config['Parameters'][key])
-                            print(key + "=" + str(config['Parameters'][key]))                
+                            print(key + "=" + str(config['Parameters'][key]))   
+            LoadVarsIni(config,sections)             
 
 def makeTable():
     TITLE = 'TABLE'
