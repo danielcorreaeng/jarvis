@@ -105,6 +105,9 @@ class MyChatBot():
             target = '[file]'
         if(str(ask).lower().find('[link]') >= 0):
             target = '[link]'     
+        if(str(ask).lower().find('.mp4') >= 0):
+            target = '[raw]'         
+            flag = '-f'                  
         if(str(ask).lower().find('[jsonnote]') >= 0):
             target = '[jsonnote]'  
             flag = '-n'

@@ -192,6 +192,7 @@ def Main():
             DEFAULT: [
                     MessageHandler(Filters.photo, photo),
                     MessageHandler(Filters.document, document),
+                    MessageHandler(Filters.video, document),
                     MessageHandler(Filters.text & ~Filters.command, bot)],
             TAGS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag), CommandHandler('skip', cancel)],
         },
