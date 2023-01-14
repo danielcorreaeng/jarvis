@@ -64,7 +64,7 @@ Test application.
 
 Create default base (bot, services).
 
-    python readpath DefaultDb
+    python  Jarvis.py readpath DefaultDb
     
 You can create a **bat file** to make the commands easier. Something like this command. 
 
