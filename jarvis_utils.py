@@ -293,7 +293,6 @@ def GetPublicIp():
     return ippublic
 
 def LoadVarsIni(config,sections):
-    print("test")
     pass
 
 def GetCorrectPath():
@@ -328,7 +327,7 @@ def GetCorrectPath():
             if('Parameters' in sections):
                 if('defaultpassword' in config['Parameters']):
                     globalParameter['password'] = config['Parameters']['defaultpassword']
-                    print('password:' + globalParameter['password'])
+                    #print('password:' + globalParameter['password'])
                 for key in config['Parameters']:  
                     for globalParameter_key in globalParameter:    
                         if globalParameter_key.lower()==key.lower():
@@ -471,7 +470,7 @@ def mainThread():
         try:                 
             mainLoop()
             time.sleep(globalParameter['MAINLOOP_SLEEP_SECONDS']) 
-            print('Loop')
+            #print('Loop')
         except:
             print('Error Loop')
     pass

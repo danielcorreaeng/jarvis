@@ -50,7 +50,7 @@ globalParameter['RemoteCmdDownload'] = 'rmt download'
 
 globalParameter['FileCommandModel'] = os.path.join(globalParameter['PathLocal'], "model_command.py")
 globalParameter['FileServiceModel'] = os.path.join(globalParameter['PathLocal'], "model_service.py")
-globalParameter['FileUtils'] = os.path.join(globalParameter['PathLocal'], "model_service.py")
+globalParameter['FileUtils'] = os.path.join(globalParameter['PathLocal'], "jarvis_utils.py")
 globalParameter['HideDatabase'] = ''
 
 def GetLocalFile():
@@ -442,6 +442,8 @@ class Commands():
 		localFile = os.path.join(globalParameter['PathOutput'], GetLocalFile())
 
 		if(_command != None):
+			if(os.path.isfile(globalParameter['FileUtils'])):
+				shutil.copy(globalParameter['FileUtils'], globalParameter['PathOutput'])
 			return self._RealyDoCommand(jv, _command, localFile, parameters)
 
 		elif(command == 'help'):
@@ -850,10 +852,7 @@ class Commands():
 				elif os.path.exists(globalParameter['FileCommandModel']) == True:
 					_command = self.LoadFile(globalParameter['FileCommandModel'])
 					if(os.path.isfile(globalParameter['FileUtils'])):
-						#try:
 						shutil.copy(globalParameter['FileUtils'], globalParameter['PathOutput'])
-						#except:
-						#	pass
 				fileTest.write(_command)
 				fileTest.close()
 			else:

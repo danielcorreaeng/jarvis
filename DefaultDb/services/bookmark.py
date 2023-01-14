@@ -10,60 +10,15 @@ import requests
 import json
 import configparser
 
-globalParameter = {}
-globalParameter['PathLocal'] = os.path.join("C:\\","Jarvis")
-globalParameter['PathJarvis'] = os.path.join("C:\\","Jarvis","Jarvis.py")
-globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'], "Output")
-globalParameter['PathExecutable'] = "python"
+from jarvis_utils import *
+
+globalParameter['INPUT_DATA_OFF'] = True
+globalParameter['OUTPUT_DATA_OFF'] = True
+globalParameter['MAINLOOP_CONTROLLER'] = False
+globalParameter['MAINWEBSERVER'] = False
+globalParameter['PROCESS_JARVIS'] = None
 globalParameter['ChromeTarget'] = "C:\Program Files\Google\Chrome\Application\chrome.exe"
 globalParameter['TimeRecordFile'] = 3
-
-def Run(command, parameters=None, wait=False):
-    #print(command)
-    if(parameters != None):
-        proc = subprocess.Popen([command, parameters], stdout=subprocess.PIPE, shell=True)
-    else:
-        proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
-
-    if(wait == True):
-        proc.communicate()
-
-def RunJarvis(tags):
-	Run(globalParameter['PathExecutable'] + ' ' + globalParameter['PathJarvis'] + ' ' + tags)  
-
-def GetCorrectPath():
-    global globalParameter
-
-    dir_path = os.path.dirname(os.path.realpath(__file__)) 
-    os.chdir(dir_path)
-
-    jarvis_file = os.path.join(dir_path, 'Jarvis.py')
-    ini_file = os.path.join(dir_path, 'config.ini')
-    if(os.path.isfile(jarvis_file) == False):
-        jarvis_file = os.path.join(dir_path, '..', 'Jarvis.py')
-        ini_file = os.path.join(dir_path, '..', 'config.ini')
-        if(os.path.isfile(jarvis_file) == False):
-            return
-    
-    globalParameter['PathExecutable'] = sys.executable
-    globalParameter['PathLocal'] = os.path.dirname(os.path.realpath(jarvis_file))
-    globalParameter['PathJarvis'] = jarvis_file
-    globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'], "Output")
-
-    if(os.path.isfile(ini_file) == True):
-        with open(ini_file) as fp:
-            config = configparser.ConfigParser()
-            config.read_file(fp)
-            sections = config.sections()
-            if('Parameters' in sections):
-                if('defaultpassword' in config['Parameters']):
-                    globalParameter['password'] = config['Parameters']['defaultpassword']
-                    print('password:' + globalParameter['password'])
-                for key in config['Parameters']:                    
-                    for globalParameter_key in globalParameter:    
-                        if globalParameter_key.lower()==key.lower():
-                            globalParameter[globalParameter_key]=str(config['Parameters'][key])
-                            print(key + "=" + str(config['Parameters'][key]))
 
 def MakeCommandExemple():
 	_command = "import time\n"
@@ -88,9 +43,12 @@ def MakeCommandExemple():
 		
 	return _command
 
+def GetLocalFileWithoutExtension():
+    localFile = os.path.join(globalParameter['PathOutput'], datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + "_" + str(randint(0, 999)) + "_temp")
+    return localFile
 
 def GetLocalFile():
-    localFile = os.path.join(globalParameter['PathOutput'], datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + "_" + str(randint(0, 999)) + "_temp.py")
+    localFile = GetLocalFileWithoutExtension() + ".py"
     return localFile
 
 def Main(): 
@@ -105,6 +63,7 @@ if __name__ == '__main__':
     parser.add_argument('-u','--unique', help='Make id unique for tag', action='store_true')
     parser.add_argument('-l','--jsonlink', help='Create a json file with the inserted link', action='store_true')
     parser.add_argument('-n','--jsonnote', help='Create a json file with the inserted note', action='store_true')
+    parser.add_argument('-f','--keepfile', help='Create a file without database (base = folder, tag = name)', action='store_true')    
     
     args, unknown = parser.parse_known_args()
     args = vars(args)
@@ -118,6 +77,10 @@ if __name__ == '__main__':
     id_unique = False
     if args['unique'] == True:
         id_unique = True   
+
+    if(len(unknown) < 3):
+        print('Sorry, y need more arguments. Use -d for description.')
+        sys.exit()   
         
     base = unknown[0]
     tags = unknown[1:-1]
@@ -130,15 +93,27 @@ if __name__ == '__main__':
     file = GetLocalFile()
     extension = os.path.splitext(link)[1]
 
-    if((args['jsonlink'] == False and args['jsonnote'] == False) and (extension == '.jpg' or extension == '.jpeg' or extension == '.png' or extension == '.json' or extension == '.doc' or extension == '.docx' or extension == '.pdf' or extension == '.xls' or extension == '.xlsx')):
-        file = file + extension
+    if((args['jsonlink'] == False and args['keepfile'] == False and args['jsonnote'] == False) and (extension == '.jpg' or extension == '.jpeg' or extension == '.png' or extension == '.json' or extension == '.doc' or extension == '.docx' or extension == '.pdf' or extension == '.xls' or extension == '.xlsx')):
+        file = GetLocalFileWithoutExtension() + extension
         f = open(file,'wb')
         response = requests.get(link)
         f.write(response.content)
         f.close()
         time.sleep(globalParameter['TimeRecordFile'])
         cmd = 'read ' + file + ' ' + tags + ' ' + '-base=' + base
-        RunJarvis(cmd)        
+        RunJarvis(cmd)  
+    elif(args['keepfile'] == True):
+
+        localpath = os.path.join(globalParameter['PathOutput'], base)
+
+        if(os.path.exists(localpath) == False):
+            os.mkdir(localpath)
+
+        file = os.path.join(localpath, tags + extension)
+        f = open(file,'wb')
+        response = requests.get(link)
+        f.write(response.content)
+        f.close()
     else:   
         jarvislink = True
 
@@ -175,5 +150,6 @@ if __name__ == '__main__':
         RunJarvis(cmd)
 
     time.sleep(globalParameter['TimeRecordFile'])
-    if(os.path.isfile(file)==True):
+    if(os.path.isfile(file)==True and args['keepfile'] == False):
         os.remove(file)
+        pass
