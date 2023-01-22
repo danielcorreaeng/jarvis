@@ -19,10 +19,12 @@ globalParameter['MAINWEBSERVER'] = True
 globalParameter['PathDB'] = "db.sqlite3"
 globalParameter['maximum_similarity_threshold'] = 0.80
 
+globalParameter['FileJarvis'] = "Jarvis.py"
 globalParameter['PathLocal'] = os.path.join("C:\\","Jarvis")
-globalParameter['PathJarvis'] = os.path.join("C:\\","Jarvis","Jarvis.py")
+globalParameter['PathJarvis'] = os.path.join("C:\\","Jarvis", globalParameter['FileJarvis'])
 globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'],"Output")
 globalParameter['PathExecutable'] = "python"
+globalParameter['configFile'] = "config.ini"
 globalParameter['allowedexternalrecordbase'] = ""
 
 app = Flask(__name__)
@@ -201,17 +203,21 @@ def GetCorrectPath():
     dir_path = os.path.dirname(os.path.realpath(__file__)) 
     os.chdir(dir_path)
 
-    jarvis_file = os.path.join(dir_path, 'Jarvis.py')
-    ini_file = os.path.join(dir_path, 'config.ini')
+    jarvis_file = os.path.join(dir_path, globalParameter['FileJarvis'])
+    ini_file = os.path.join(dir_path, globalParameter['configFile'])
     if(os.path.isfile(jarvis_file) == False):
-        jarvis_file = os.path.join(dir_path, '..', 'Jarvis.py')
-        ini_file = os.path.join(dir_path, '..', 'config.ini')
+        jarvis_file = os.path.join(dir_path, '..', globalParameter['FileJarvis'])
+        ini_file = os.path.join(dir_path, '..', globalParameter['configFile'])
         if(os.path.isfile(jarvis_file) == False):
-            return
+            jarvis_file = os.path.join(dir_path, '..', '..', globalParameter['FileJarvis'])
+            ini_file = os.path.join(dir_path, '..', '..', globalParameter['configFile'])
+            if(os.path.isfile(jarvis_file) == False):
+                return
     
     globalParameter['PathExecutable'] = sys.executable
     globalParameter['PathLocal'] = os.path.dirname(os.path.realpath(jarvis_file))
     globalParameter['PathJarvis'] = jarvis_file
+    globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'], "Output")
 
     if(os.path.isfile(ini_file) == True):
         with open(ini_file) as fp:
@@ -219,11 +225,11 @@ def GetCorrectPath():
             config.read_file(fp)
             sections = config.sections()
             if('Parameters' in sections):
-                for key in config['Parameters']:                    
+                for key in config['Parameters']:  
                     for globalParameter_key in globalParameter:    
                         if globalParameter_key.lower()==key.lower():
                             globalParameter[globalParameter_key]=str(config['Parameters'][key])
-                            print(key + "=" + str(config['Parameters'][key]))
+                            print(key + "=" + str(config['Parameters'][key]))    
 
     jarvis_file = globalParameter['PathJarvis']
     if(os.path.isfile(jarvis_file) == False):
@@ -256,6 +262,7 @@ if __name__ == '__main__':
     parser.add_argument('-l','--bootloop', help='Chatbot in loop', action='store_true')
     parser.add_argument('-r','--bootresponse', help='Chatbot response input', action='store_true')
     parser.add_argument('-p','--port', help='Service running in target port')
+    parser.add_argument('-c','--config', help='Config.ini file')    
     
     
     args, unknown = parser.parse_known_args()
@@ -290,5 +297,9 @@ if __name__ == '__main__':
     if args['port'] is not None:
         print('TargetPort: ' + args['port'])
         globalParameter['LocalPort'] = args['port']             
+
+    if args['config'] is not None:
+        print('Config.ini: ' + args['config'])
+        globalParameter['configFile'] = args['config']  
 
     Main()

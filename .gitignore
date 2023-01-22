@@ -19,6 +19,7 @@ Thumbs.db
 *.suo
 *.pyc
 *.ini
+*.sqlite3
 todolist.txt
 
 reminderlist.txt
@@ -34,6 +35,7 @@ Db/temp/*
 Db/*
 Db\*
 temp/*
+envs/*
 *.bat
 *.db
 unins000.dat
