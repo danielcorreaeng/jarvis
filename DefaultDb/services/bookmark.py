@@ -104,7 +104,7 @@ if __name__ == '__main__':
         RunJarvis(cmd)  
     elif(args['keepfile'] == True):
 
-        localpath = os.path.join(globalParameter['PathOutput'], base)
+        localpath = os.path.join(globalParameter['PathDB_All'], base)
 
         if(os.path.exists(localpath) == False):
             os.mkdir(localpath)

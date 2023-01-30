@@ -38,6 +38,7 @@ globalParameter['BlockedNetworks'] = ['192.168.56.', '192.168.100.']
 globalParameter['LocalIp'] = socket.gethostbyname(socket.gethostname())
 globalParameter['LocalUsername'] = getpass.getuser().replace(' ','_')
 globalParameter['LocalHostname'] = socket.gethostname().replace(' ','_')
+globalParameter['PathDB_All'] = os.path.join(globalParameter['PathLocal'], "Db")
 globalParameter['PathDB'] = os.path.join(globalParameter['PathLocal'], "Db" , globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] + ".db")
 
 globalParameter['INPUT_DATA_OFF'] = False

@@ -14,9 +14,6 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 
 #ref.: https://raw.githubusercontent.com/python-telegram-bot/python-telegram-bot/master/examples/echobot.py
 
-VALUES_INPUT = {}
-VALUES_OUTPUT = {}
-
 globalParameter = {}
 globalParameter['BotIp'] = '127.0.0.1:8805'
 globalParameter['LocalUsername'] = getpass.getuser().replace(' ','_')
@@ -29,7 +26,7 @@ globalParameter['PathExecutable'] = "python"
 globalParameter['Token'] = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 globalParameter['AllowedUser'] = None
 
-DEFAULT, TAGS = range(2)
+DEFAULT, TAGS, TAGS_VIDEOS = range(3)
 
 def ChatBot(message):
     error = 'Hi! Sorry... No service now =('
@@ -58,26 +55,29 @@ def GetCorrectPath():
 
     dir_path = os.path.dirname(os.path.realpath(__file__)) 
     os.chdir(dir_path)
+    #print(dir_path)      
 
-    jarvis_file = os.path.join(dir_path, 'Jarvis.py')
-    ini_file = os.path.join(dir_path, 'config.ini')
-    if(os.path.isfile(jarvis_file) == False):
-        jarvis_file = os.path.join(dir_path, '..', 'Jarvis.py')
-        ini_file = os.path.join(dir_path, '..', 'config.ini')
-        if(os.path.isfile(jarvis_file) == False):
-            return
-    
+    ini_file = os.path.join(dir_path, globalParameter['configFile'])
+    #print(ini_file)
+    if(os.path.isfile(ini_file) == False):
+        ini_file = os.path.join(dir_path, '..', globalParameter['configFile'])
+        if(os.path.isfile(ini_file) == False):
+            ini_file = os.path.join(dir_path, '..', '..', globalParameter['configFile'])
+            if(os.path.isfile(ini_file) == False):
+                return
+    #print('Found ini')  
+
     globalParameter['PathExecutable'] = sys.executable
-    globalParameter['PathLocal'] = os.path.dirname(os.path.realpath(jarvis_file))
-    globalParameter['PathJarvis'] = jarvis_file
     globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'], "Output")
 
     if(os.path.isfile(ini_file) == True):
+        #print('Found ini')
         with open(ini_file) as fp:
             config = configparser.ConfigParser()
             config.read_file(fp)
             sections = config.sections()
             if('Telegram' in sections):
+                #print('Telegram')
                 for key in config['Telegram']:         
                     if(key.lower()=='token'):
                         globalParameter['Token'] = config['Telegram'][key]
@@ -133,6 +133,20 @@ def photo(update: Update, context: CallbackContext) -> int:
     return TAGS
 
 
+def videos(update: Update, context: CallbackContext) -> int:
+    """Stores video and asks for a base|tags."""
+    user = update.message.from_user
+
+    document_file=update.message.bot.get_file(update.message.video)
+    print(document_file)
+
+    context.user_data['fileid'] = document_file['file_path']
+
+    update.message.reply_text(
+        'Gorgeous! Now, send me <base> <tags> for i record the file, or send /skip if you don\'t want to.'
+    )
+    return TAGS_VIDEOS
+
 def document(update: Update, context: CallbackContext) -> int:
     """Stores the document and asks for a base|tags."""
     user = update.message.from_user
@@ -156,6 +170,28 @@ def define_base_tag(update: Update, context: CallbackContext) -> int:
     if 'fileid' in user_data:
         print(context.user_data['fileid'])
         cmd = "[file] " + context.user_data['fileid'] + " [base|tags] " + update.message.text
+
+        print(cmd)
+        del user_data['fileid']
+
+    res = ChatBot(cmd)
+
+    print('bot:' + res)
+
+    update.message.reply_text(res)
+    return DEFAULT
+
+
+def define_base_tag_videos(update: Update, context: CallbackContext) -> int:
+    """Bot record videos."""
+
+    print('user:' + update.message.text)
+
+    cmd = update.message.text
+    user_data = context.user_data
+    if 'fileid' in user_data:
+        print(context.user_data['fileid'])
+        cmd = "[raw] " + context.user_data['fileid'] + " [base|tags] " + update.message.text
 
         print(cmd)
         del user_data['fileid']
@@ -192,9 +228,10 @@ def Main():
             DEFAULT: [
                     MessageHandler(Filters.photo, photo),
                     MessageHandler(Filters.document, document),
-                    MessageHandler(Filters.video, document),
+                    MessageHandler(Filters.video, videos),
                     MessageHandler(Filters.text & ~Filters.command, bot)],
             TAGS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag), CommandHandler('skip', cancel)],
+            TAGS_VIDEOS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag_videos), CommandHandler('skip', cancel)],
         },
         fallbacks=[CommandHandler('cancel', cancel), CommandHandler('skip', cancel)],
     )
@@ -246,6 +283,7 @@ if __name__ == '__main__':
     parser.add_argument('-d','--description', help='Description of program', action='store_true')
     parser.add_argument('-i','--file_input', help='data entry via file (path)')
     parser.add_argument('-o','--file_output', help='output data via file (path)')
+    parser.add_argument('-c','--config', help='Config.ini file')       
     
     args, unknown = parser.parse_known_args()
     args = vars(args)
@@ -254,17 +292,12 @@ if __name__ == '__main__':
         print(Main.__doc__)
         sys.exit()
 
-    if args['file_input']:   
-        with open(args['file_input']) as json_file:
-            VALUES_INPUT = json.load(json_file)
+    if args['config'] is not None:
+        print('Config.ini: ' + args['config'])
+        globalParameter['configFile'] = args['config']  
 
     param = ' '.join(unknown)
 
     GetCorrectPath()
 
     Main()
-    
-    if args['file_output']:
-        with open(args['file_output'], "w") as outfile:                    
-            json_string = json.dumps(VALUES_OUTPUT, default=lambda o: o.__dict__, sort_keys=True, indent=2)
-            outfile.write(json_string)                
