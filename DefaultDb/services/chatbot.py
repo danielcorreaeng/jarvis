@@ -27,6 +27,8 @@ globalParameter['PathExecutable'] = "python"
 globalParameter['configFile'] = "config.ini"
 globalParameter['allowedexternalrecordbase'] = ""
 
+#chatbot jarvis updated Feb 4th, 2023 - https://github.com/danielcorreaeng/jarvis
+
 app = Flask(__name__)
 CORS(app)
 
@@ -103,17 +105,20 @@ class MyChatBot():
 
         if(str(ask).lower().find('[img]') >= 0):
             target = '[img]'
-        if(str(ask).lower().find('[file]') >= 0):
+        elif(str(ask).lower().find('[file]') >= 0):
             target = '[file]'
-        if(str(ask).lower().find('[link]') >= 0):
+        elif(str(ask).lower().find('[link]') >= 0):
             target = '[link]'     
-        if(str(ask).lower().find('.mp4') >= 0):
+        elif(str(ask).lower().find('.mp4') >= 0):
             target = '[raw]'         
-            flag = '-f'                  
-        if(str(ask).lower().find('[jsonnote]') >= 0):
+            flag = '-f'    
+        elif(str(ask).lower().find('[raw]') >= 0):
+            target = '[raw]'         
+            flag = '-f'                
+        elif(str(ask).lower().find('[jsonnote]') >= 0):
             target = '[jsonnote]'  
             flag = '-n'
-        if(str(ask).lower().find('[jsonlink]') >= 0):
+        elif(str(ask).lower().find('[jsonlink]') >= 0):
             target = '[jsonlink]'                                 
             flag = '-l'
 
