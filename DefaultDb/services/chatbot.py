@@ -26,17 +26,17 @@ globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'],"Outpu
 globalParameter['PathExecutable'] = "python"
 globalParameter['configFile'] = "config.ini"
 globalParameter['allowedexternalrecordbase'] = ""
+globalParameter['flaskstatic_folder'] = 'External'
 
 #chatbot jarvis updated Feb 4th, 2023 - https://github.com/danielcorreaeng/jarvis
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path="/" + globalParameter['flaskstatic_folder'], static_folder=globalParameter['flaskstatic_folder'])
 CORS(app)
 
 class TestCases(unittest.TestCase):
     def test_dump(self):
         check = True
         self.assertTrue(check)
-
 
 def Run(command, parameters=None, wait=False):
     if(globalParameter['PathJarvis'] == None):
@@ -197,10 +197,15 @@ def botresponse():
         ask = request.args.get('ask')
         return BotResponse(ask)
 
-@app.route('/')
-def index():
+def description():
     return str(Main.__doc__) + " | ip server : " +  str(globalParameter['LocalIp']) + ":" + str(globalParameter['LocalPort'])
 
+@app.route('/')
+def index():
+    return description()
+
+def LoadVarsIni(config,sections):
+    pass
 
 def GetCorrectPath():
     global globalParameter
@@ -210,13 +215,13 @@ def GetCorrectPath():
 
     jarvis_file = os.path.join(dir_path, globalParameter['FileJarvis'])
     ini_file = os.path.join(dir_path, globalParameter['configFile'])
-    if(os.path.isfile(jarvis_file) == False):
+    if(os.path.isfile(ini_file) == False):
         jarvis_file = os.path.join(dir_path, '..', globalParameter['FileJarvis'])
         ini_file = os.path.join(dir_path, '..', globalParameter['configFile'])
-        if(os.path.isfile(jarvis_file) == False):
+        if(os.path.isfile(ini_file) == False):
             jarvis_file = os.path.join(dir_path, '..', '..', globalParameter['FileJarvis'])
             ini_file = os.path.join(dir_path, '..', '..', globalParameter['configFile'])
-            if(os.path.isfile(jarvis_file) == False):
+            if(os.path.isfile(ini_file) == False):
                 return
     
     globalParameter['PathExecutable'] = sys.executable
@@ -234,7 +239,8 @@ def GetCorrectPath():
                     for globalParameter_key in globalParameter:    
                         if globalParameter_key.lower()==key.lower():
                             globalParameter[globalParameter_key]=str(config['Parameters'][key])
-                            print(key + "=" + str(config['Parameters'][key]))    
+                            print(key + "=" + str(config['Parameters'][key]))  
+            LoadVarsIni(config,sections)      
 
     jarvis_file = globalParameter['PathJarvis']
     if(os.path.isfile(jarvis_file) == False):
