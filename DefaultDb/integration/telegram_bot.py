@@ -25,6 +25,7 @@ globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'], "Outp
 globalParameter['PathExecutable'] = "python"
 globalParameter['Token'] = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 globalParameter['AllowedUser'] = None
+globalParameter['configFile'] = "config.ini"
 
 DEFAULT, TAGS, TAGS_VIDEOS = range(3)
 
