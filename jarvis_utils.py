@@ -319,6 +319,7 @@ def GetCorrectPath():
     #print(globalParameter['PathJarvis'])
     globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'], "Output")
     globalParameter['PathDB'] = os.path.join(globalParameter['PathLocal'], "Db", globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] + ".db")
+    globalParameter['PathDB_All'] = os.path.join(globalParameter['PathLocal'], "Db")
 
     if(os.path.isfile(ini_file) == True):
         with open(ini_file) as fp:

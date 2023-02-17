@@ -28,7 +28,7 @@ globalParameter['configFile'] = "config.ini"
 globalParameter['allowedexternalrecordbase'] = ""
 globalParameter['flaskstatic_folder'] = 'External'
 
-#chatbot jarvis updated Feb 4th, 2023 - https://github.com/danielcorreaeng/jarvis
+#chatbot jarvis updated Feb 17th, 2023 - https://github.com/danielcorreaeng/jarvis
 
 app = Flask(__name__, static_url_path="/" + globalParameter['flaskstatic_folder'], static_folder=globalParameter['flaskstatic_folder'])
 CORS(app)
