@@ -137,6 +137,7 @@ def mainLoopProcess2(input_data):
     result = None
 
     rows = globalParameter['CriticalServices']
+    print(rows)
     if(len(rows) > 0):
         for row in rows:                
             alive = False
@@ -200,6 +201,7 @@ if __name__ == '__main__':
     parser.add_argument('-p','--port', help='Service running in target port')
     parser.add_argument('-i','--ip', help='Service running in target ip')
     parser.add_argument('-c','--config', help='Config.ini file')
+    parser.add_argument('-z','--zero', help='Without base services like chatbot or datalogger', action='store_true')    
     
     args, unknown = parser.parse_known_args()
     args = vars(args)
@@ -228,6 +230,10 @@ if __name__ == '__main__':
     if args['config'] is not None:
         print('Config.ini: ' + args['config'])
         globalParameter['configFile'] = args['config']  
+
+    if args['zero'] is True:
+        print('CriticalServices: []')
+        globalParameter['CriticalServices'].clear()       
    
     param = ' '.join(unknown)
 

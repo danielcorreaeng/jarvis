@@ -188,7 +188,7 @@ def makeGallery():
     return makePage(TITLE, DATA, PAGE_SCRIPT,PAGE_PAGE_CSS)
 
 def Main():
-    """view the images from the database in web (/gallery or /table). Optional parameters: -t (--target) to select a base -p (--port) to select target port """    
+    """view the images from path in web (/table). Optional parameters: -t (--target) to select a base -p (--port) to select target port """    
 
     global globalParameter
 
