@@ -23,6 +23,7 @@ globalParameter['TargetPath'] = None
 globalParameter['TargetDB'] = globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername']
 globalParameter['PathDB'] = os.path.join(globalParameter['PathLocal'], "Db", globalParameter['TargetDB'] + ".db")
 globalParameter['TAG_SEPARATOR'] = '_' 
+globalParameter['TAG_SEPARATOR_EXTRA'] = ' ' 
 
 class TestCases_Local(TestCases):
     def test_dump(self):
@@ -64,8 +65,9 @@ def makeTable():
         name = os.path.splitext(os.path.basename(_localfile))[0]
         filetype = _localfile.split(".")[-1]
         filepath = request.url_root + 'External/' + os.path.basename(_localfile)
+        name_tags = name.replace(globalParameter['TAG_SEPARATOR_EXTRA'], globalParameter['TAG_SEPARATOR'])
 
-        DATA += '''<tr><th><span class='badge bg-primary'>''' + name.replace(globalParameter['TAG_SEPARATOR'], "</span>&nbsp;<span class='badge bg-primary'>") + '''</span></th><th>''' + filetype + '''</th><th><a data-bs-toggle="modal" data-bs-target="#modal1" href="#" onclick="FileToModal(''' + str(idcount) + ''');return false;"><span class='badge bg-primary'>view</span></a></th></tr>'''
+        DATA += '''<tr><th><span class='badge bg-primary'>''' + name_tags.replace(globalParameter['TAG_SEPARATOR'], "</span>&nbsp;<span class='badge bg-primary'>") + '''</span></th><th>''' + filetype + '''</th><th><a data-bs-toggle="modal" data-bs-target="#modal1" href="#" onclick="FileToModal(''' + str(idcount) + ''');return false;"><span class='badge bg-primary'>view</span></a></th></tr>'''
 
     DATA += '</tbody>'
     DATA += '<tfoot><tr><th>Tags</th><th>Type</th><th>Action</th></tr></tfoot>'
@@ -151,7 +153,9 @@ def makeGallery():
         filetype = _localfile.split(".")[-1]
         filepath = request.url_root + 'External/' + os.path.basename(_localfile)
 
-        tags_local = name.split(globalParameter['TAG_SEPARATOR'])
+        name_tags = name.replace(globalParameter['TAG_SEPARATOR_EXTRA'], globalParameter['TAG_SEPARATOR'])
+
+        tags_local = name_tags.split(globalParameter['TAG_SEPARATOR'])
 
         for tag in tags_local:
                 if tag in tags.keys(): 
@@ -160,7 +164,7 @@ def makeGallery():
                 else: 
                     tags[tag] = 1
 
-        DATA += '''<div class=" col-lg-3 col-md-4 col-xs-6 thumb column000 people ''' + name + '''"><div class="content"><a data-bs-toggle="modal" data-bs-target="#modal1" href="#" onclick="ImageToModal(''' + str(idcount) + ''');return false;"><img  id="img''' + str(idcount) + '''" style="width:100%" src="''' + filepath  +  '''"></a><h4></h4><p><span class='badge bg-primary'>''' + name.replace(globalParameter['TAG_SEPARATOR'], "</span>&nbsp;<span class='badge bg-primary'>") + '''</span></p></div></div>'''  
+        DATA += '''<div class=" col-lg-3 col-md-4 col-xs-6 thumb column000 people ''' + name + '''"><div class="content"><a data-bs-toggle="modal" data-bs-target="#modal1" href="#" onclick="ImageToModal(''' + str(idcount) + ''');return false;"><img  id="img''' + str(idcount) + '''" style="width:100%" src="''' + filepath  +  '''"></a><h4></h4><p><span class='badge bg-primary'>''' + name_tags.replace(globalParameter['TAG_SEPARATOR'], "</span>&nbsp;<span class='badge bg-primary'>") + '''</span></p></div></div>'''  
 
     DATA += '''</div></div></div>'''  
     DATA += '''<div class="modal fade" id="modal1" tabindex="1000" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"></div><div class="modal-body"><div id="divmodal1"><img id="imgmodal1" style="width:100%"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button></div></div></div></div>'''
@@ -222,7 +226,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=Main.__doc__)
     parser.add_argument('-d','--description', help='Description of program', action='store_true')
     parser.add_argument('-u','--tests', help='Execute tests', action='store_true')
-    parser.add_argument('-t','--target', help='Base target')
+    parser.add_argument('-t','--target', help='Path target')
     parser.add_argument('-p','--port', help='Service running in target port')
     parser.add_argument('-i','--ip', help='Service running in target ip')
     parser.add_argument('-c','--config', help='Config.ini file')
