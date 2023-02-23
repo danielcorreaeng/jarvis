@@ -260,6 +260,8 @@ def Main():
     
     GetCorrectPath()
 
+    globalParameter['PathDB'] = os.path.join(globalParameter['PathLocal'], "Db", globalParameter['TargetDB'] + ".db")
+
     try:        
         if(globalParameter['LocalIp'] == None):
             globalParameter['LocalIp'] = GetCorrectIp(socket.gethostbyname_ex(socket.gethostname()))

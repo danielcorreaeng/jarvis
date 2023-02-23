@@ -171,8 +171,8 @@ def Run(command, parameters=None, wait=False):
     if(wait == True):
         proc.communicate()
 
-def RunJarvis(tags):
-    Run(globalParameter['PathExecutable'] + ' ' + globalParameter['PathJarvis'] + ' ' + tags, None, True) 
+def RunJarvis(tags, parameters=None, wait=True):
+    Run(globalParameter['PathExecutable'] + ' ' + globalParameter['PathJarvis'] + ' ' + tags, parameters, wait) 
     print('command : ' + globalParameter['PathExecutable'] + ' ' + globalParameter['PathJarvis'] + ' ' + tags) 
 
 @app.route('/example/restricted')
