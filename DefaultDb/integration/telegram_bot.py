@@ -26,6 +26,8 @@ globalParameter['PathExecutable'] = "python"
 globalParameter['Token'] = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 globalParameter['AllowedUser'] = None
 globalParameter['configFile'] = "config.ini"
+globalParameter['TypeTagPhotoOrDocs'] = "[raw]" #"[file]" 
+globalParameter['TypeTagVideo'] = "[raw]"
 
 DEFAULT, TAGS, TAGS_VIDEOS = range(3)
 
@@ -170,7 +172,7 @@ def define_base_tag(update: Update, context: CallbackContext) -> int:
     user_data = context.user_data
     if 'fileid' in user_data:
         print(context.user_data['fileid'])
-        cmd = "[file] " + context.user_data['fileid'] + " [base|tags] " + update.message.text
+        cmd = globalParameter['TypeTagPhotoOrDocs'] + " " + context.user_data['fileid'] + " [base|tags] " + update.message.text
 
         print(cmd)
         del user_data['fileid']
@@ -192,7 +194,7 @@ def define_base_tag_videos(update: Update, context: CallbackContext) -> int:
     user_data = context.user_data
     if 'fileid' in user_data:
         print(context.user_data['fileid'])
-        cmd = "[raw] " + context.user_data['fileid'] + " [base|tags] " + update.message.text
+        cmd = globalParameter['TypeTagVideo'] + " " + context.user_data['fileid'] + " [base|tags] " + update.message.text
 
         print(cmd)
         del user_data['fileid']
@@ -223,28 +225,32 @@ def Main():
     dispatcher = updater.dispatcher
 
     
-    conv_handler = ConversationHandler(
-        entry_points=[MessageHandler(Filters.text & ~Filters.command, bot), CommandHandler('start', start)],
-        states={
-            DEFAULT: [
-                    MessageHandler(Filters.photo, photo),
-                    MessageHandler(Filters.document, document),
-                    MessageHandler(Filters.video, videos),
-                    MessageHandler(Filters.text & ~Filters.command, bot)],
-            TAGS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag), CommandHandler('skip', cancel)],
-            TAGS_VIDEOS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag_videos), CommandHandler('skip', cancel)],
-        },
-        fallbacks=[CommandHandler('cancel', cancel), CommandHandler('skip', cancel)],
-    )
+    if(False):
+        conv_handler = ConversationHandler(
+            entry_points=[MessageHandler(Filters.text & ~Filters.command, bot), CommandHandler('start', start)],
+            states={
+                DEFAULT: [
+                        MessageHandler(Filters.photo, photo),
+                        MessageHandler(Filters.document, document),
+                        MessageHandler(Filters.video, videos),
+                        MessageHandler(Filters.text & ~Filters.command, bot)],
+                TAGS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag), CommandHandler('skip', cancel)],
+                TAGS_VIDEOS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag_videos), CommandHandler('skip', cancel)],
+            },
+            fallbacks=[CommandHandler('cancel', cancel), CommandHandler('skip', cancel)],
+        )
 
-    if(globalParameter['AllowedUser'] == None):
+    if(globalParameter['AllowedUser'] != None):
             conv_handler = ConversationHandler(
                 entry_points=[MessageHandler(Filters.text & ~Filters.command, bot, Filters.user(username=globalParameter['AllowedUser'])), CommandHandler('start', start, Filters.user(username=globalParameter['AllowedUser']))],
                 states={
                     DEFAULT: [
                             MessageHandler(Filters.photo, photo, Filters.user(username=globalParameter['AllowedUser'])),
+                            MessageHandler(Filters.document, document, Filters.user(username=globalParameter['AllowedUser'])),
+                            MessageHandler(Filters.video, videos, Filters.user(username=globalParameter['AllowedUser'])),
                             MessageHandler(Filters.text & ~Filters.command, bot, Filters.user(username=globalParameter['AllowedUser']))],
                     TAGS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag, Filters.user(username=globalParameter['AllowedUser'])), CommandHandler('skip', cancel, Filters.user(username=globalParameter['AllowedUser']))],
+                    TAGS_VIDEOS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag_videos), CommandHandler('skip', cancel)],
                 },
                 fallbacks=[CommandHandler('cancel', cancel, Filters.user(username=globalParameter['AllowedUser'])), CommandHandler('skip', cancel, Filters.user(username=globalParameter['AllowedUser']))],
             )
