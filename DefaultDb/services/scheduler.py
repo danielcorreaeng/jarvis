@@ -21,21 +21,7 @@ globalParameter['PROCESS_JARVIS'] = None
 globalParameter['TimeRecordFile'] = 3
 globalParameter['SchedulerTasks'] = []
 globalParameter['SchedulerText'] = ""
-globalParameter['SchedulerMaxLife'] = 35
-
-def Run(command, parameters=None, wait=False):
-    #print(command)
-    if(parameters != None):
-        proc = subprocess.Popen([command, parameters], stdout=subprocess.PIPE, shell=True)
-    else:
-        proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
-
-    if(wait == True):
-        proc.communicate()
-
-def RunJarvis(tags, parameters=None, wait=True):
-    Run(globalParameter['PathExecutable'] + ' ' + globalParameter['PathJarvis'] + ' ' + tags, parameters, wait) 
-    print('command : ' + globalParameter['PathExecutable'] + ' ' + globalParameter['PathJarvis'] + ' ' + tags) 
+globalParameter['SchedulerMaxLife'] = -1
 
 def MakeSchedulerCode(_schedules,_loop):
     _command = "import time\n"
@@ -94,8 +80,6 @@ def MakeSchedulerTaskToText(task):
     if("jarvis" in task):
         task = task.replace("jarvis", globalParameter['PathExecutable'] + ' ' + globalParameter['PathJarvis'])
 
-    print([task, body])
-
     schedulesText = "\t" + body + "(Run,r'" + task  + "')" + "\n"	    
     return schedulesText
 
@@ -107,44 +91,41 @@ def GetLocalFile():
     localFile = GetLocalFileWithoutExtension() + ".py"
     return localFile
 
+def LoadVarsIni2(config,sections):
+    global globalParameter
+
+    if('SchedulerTasks' in sections):
+        for key in config['SchedulerTasks']:  
+            print(config['SchedulerTasks'][key])
+            globalParameter['SchedulerTasks'].append(config['SchedulerTasks'][key])   
+
 def Main(): 
     '''create a new program with a scheduling system with the tasks passed here by parameter or configuration file. the format defined by the schedule library as schedule.every(10).seconds.do.jarvis calc and other parameters'''
     
     global globalParameter
+
+    globalsub.subs(LoadVarsIni, LoadVarsIni2)
+    GetCorrectPath()  
 
     textTest = "schedule.every(10).seconds.do.jarvis calc and other parameters"
 
     if(len(globalParameter['SchedulerTasks'])<=0):
         return 
     
+    globalParameter['SchedulerText'] = ''
     for task in globalParameter['SchedulerTasks']:
-        globalParameter['SchedulerText'] = MakeSchedulerTaskToText(task)
+        globalParameter['SchedulerText'] += MakeSchedulerTaskToText(task)
 
     code = MakeSchedulerCode(globalParameter['SchedulerText'],MakeSchedulerLoopToText())
 
     file = GetLocalFile()
-    print(file)
-
     fileTest = open(file,"w")
     fileTest.write(code)
     fileTest.close()
     time.sleep(globalParameter['TimeRecordFile'])
 
-    '''
-    fileTest = open(file,"a")
-    cmd = "\tRun(r'" + globalParameter['ChromeTarget'] + "','-incognito " + link + "')\n"
-    fileTest.write(cmd)
-    fileTest.close()
-            
-    time.sleep(globalParameter['TimeRecordFile'])
-    cmd = 'read ' + file + ' ' + tags + ' ' + '-base=' + base
-    RunJarvis(cmd)
+    Run(globalParameter['PathExecutable'] + ' ' + file) 
 
-    time.sleep(globalParameter['TimeRecordFile'])
-    if(os.path.isfile(file)==True and args['keepfile'] == False):
-        os.remove(file)
-        pass    
-    '''
     pass
 	
 if __name__ == '__main__':
@@ -152,6 +133,7 @@ if __name__ == '__main__':
     parser.add_argument('-d','--description', help='Description of program', action='store_true')
     parser.add_argument('-t','--task', help='Receive a task for parameter')
     parser.add_argument('-c','--config', help='Config.ini file')
+    parser.add_argument('-l','--lifetime', help='Lifetime in seconds')
     
     args, unknown = parser.parse_known_args()
     args = vars(args)
@@ -160,15 +142,17 @@ if __name__ == '__main__':
         print(Main.__doc__)
         sys.exit()     
 
-    GetCorrectPath()  
-
     if args['task'] is not None:
         print(str(args['task']))
         globalParameter['SchedulerTasks'].append(str(args['task']))
 
     if args['config'] is not None:
         print('Config.ini: ' + args['config'])
-        globalParameter['configFile'] = args['config']          
+        globalParameter['configFile'] = args['config']    
+
+    if args['lifetime'] is not None:
+        print('Lifetime: ' + args['lifetime'])
+        globalParameter['SchedulerMaxLife'] = int(args['lifetime'])          
 
     Main()
    
