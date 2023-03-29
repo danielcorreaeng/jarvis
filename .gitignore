@@ -28,6 +28,8 @@ reminderlist.txt
 Python/*
 Python_Win/*
 Python_Linux/*
+DefaultDb/services/jarvis_utils.py
+DefaultDb/integration/jarvis_utils.py
 Output/*
 Aiml/*
 External/*

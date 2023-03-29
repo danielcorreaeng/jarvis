@@ -13,4 +13,6 @@ Flask-Cors==3.0.10
 chatterbot-corpus==1.2.0
 python-telegram-bot==13.7
 python-dotenv
+openai
+schedule
 
