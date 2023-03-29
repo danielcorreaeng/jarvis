@@ -87,8 +87,9 @@ Or put in **config.ini** in section **CriticalServices** other jarvis services c
 
     [CriticalServices]
     bla1=datalogger -base=services
-    bla2=calc
-    bla3=test -base=test
+    bla2=scheduler -base=services -t schedule.every(5).seconds.do.jarvis calc and other parameters
+    bla3=calc
+    bla4=test -base=test
     
 The service in **%AppData%\Microsoft\Windows\Start Menu\Programs\Startup** will start in next restart system.
 
