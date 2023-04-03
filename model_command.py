@@ -1,19 +1,21 @@
+from glob import glob
 import time
 import json
 import sys,os
 import subprocess
 import argparse
 import unittest
+#from jarvis_utils import * #AT YOUR OWN RISK
 
 VALUES_INPUT = {}
 VALUES_OUTPUT = {}
 
-class TestCases(unittest.TestCase):
+class TestCases_Local(unittest.TestCase):
     def test_case_000(self):
         self.assertEqual('foo'.upper(), 'FOO')
         
     def test_case_001(self):
-        self.assertEqual('foo'.upper(), 'FOO')        
+        self.assertEqual('foo'.upper(), 'FOO')       
 
 def Run(command, parameters=None):
     if(parameters != None):
@@ -28,11 +30,13 @@ def OpenFolder(path):
 def Main(): 
     '''No describe'''
     
+    global globalParameter
     global VALUES_INPUT
     global VALUES_OUTPUT
 
     VALUES_OUTPUT = VALUES_INPUT
-    
+    #GetCorrectPath() #from jarvis_utils  
+
     #OpenFolder(r'C:\Windows')
     #Run(r'Calc')
     #Run(r'C:\Program Files\Google\Chrome\Application\chrome.exe','-incognito www.google.com.br')
@@ -54,11 +58,13 @@ if __name__ == '__main__':
 
     if args['tests'] == True:       
         suite = unittest.TestSuite()
-        suite.addTest(TestCases("test_case_000"))
-        suite.addTest(TestCases("test_case_001"))
+        suite.addTest(TestCases_Local("test_case_000"))
+        suite.addTest(TestCases_Local("test_case_001"))
+        #suite.addTest(TestCases_Local("test_webserver_fifo")) 
         runner = unittest.TextTestRunner()
-        runner.run(suite)               
-        sys.exit()        
+        runner.run(suite)   
+        #globalParameter['MAINLOOP_CONTROLLER'] = False                     
+        sys.exit()     
 
     if args['file_input']:   
         with open(args['file_input']) as json_file:

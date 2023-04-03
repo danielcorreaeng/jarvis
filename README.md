@@ -18,7 +18,7 @@ Try:
 
     python Jarvis.py help
  
-Result:
+Result (like):
 
 	Hum... Let me try :
          <tag0> <tag1> : i execute the code what it have <tag0> <tag1>.
@@ -36,7 +36,7 @@ Result:
          
 In short, you create a new command (default editor spyder3) with **Jarvis.py create tag** and then run it with **Jarvis.py tag**
 
-Chatbot is a command-enabled microservice in default base.
+Chatbot is a command-enabled microservice in default base (it is necessary to install the default base).
     
     python Jarvis.py chatbot -base=services
 
@@ -61,6 +61,10 @@ For instalation, you will install the requirements **in path of Jarvis**.
 Test application.
 
     python Jarvis.py find
+
+Create default base (bot, services).
+
+    python  Jarvis.py readpath DefaultDb
     
 You can create a **bat file** to make the commands easier. Something like this command. 
 
@@ -83,8 +87,9 @@ Or put in **config.ini** in section **CriticalServices** other jarvis services c
 
     [CriticalServices]
     bla1=datalogger -base=services
-    bla2=calc
-    bla3=test -base=test
+    bla2=scheduler -base=services -t schedule.every(5).seconds.do.jarvis calc and other parameters
+    bla3=calc
+    bla4=test -base=test
     
 The service in **%AppData%\Microsoft\Windows\Start Menu\Programs\Startup** will start in next restart system.
 
