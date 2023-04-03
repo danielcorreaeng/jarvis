@@ -18,6 +18,7 @@ globalParameter['LocalIp'] = "0.0.0.0"
 globalParameter['MAINWEBSERVER'] = True
 globalParameter['PathDB'] = "db.sqlite3"
 globalParameter['maximum_similarity_threshold'] = 0.80
+globalParameter['unanswered_answer'] = 'Não entendi'
 
 globalParameter['FileJarvis'] = "Jarvis.py"
 globalParameter['PathLocal'] = os.path.join("C:\\","Jarvis")
@@ -28,7 +29,7 @@ globalParameter['configFile'] = "config.ini"
 globalParameter['allowedexternalrecordbase'] = ""
 globalParameter['flaskstatic_folder'] = 'External'
 
-#chatbot jarvis updated Feb 17th, 2023 - https://github.com/danielcorreaeng/jarvis
+#chatbot jarvis updated Apr 03rd, 2023 - https://github.com/danielcorreaeng/jarvis
 
 app = Flask(__name__, static_url_path="/" + globalParameter['flaskstatic_folder'], static_folder=globalParameter['flaskstatic_folder'])
 CORS(app)
@@ -69,7 +70,7 @@ class MyChatBot():
             logic_adapters=[
                 {
                     'import_path': 'chatterbot.logic.BestMatch',
-                    'default_response': 'Não entendi',
+                    'default_response': globalParameter['unanswered_answer'],
                     'maximum_similarity_threshold': globalParameter['maximum_similarity_threshold']
                 }
             ]
@@ -153,7 +154,7 @@ def BotResponse(ask):
     ask = ask.replace('_', ' ')
     #print(ask)
     res = bot.response(ask)   
-    print(res) 
+    #print(res) 
     return str(res)
 
 def ChatBotLoop(Learn = False):    
@@ -190,9 +191,32 @@ def ChatBotLoop(Learn = False):
 def botresponse():
     if request.method == 'POST':
         data = request.get_json(force=True)  
+
+        if 'tag' in data:
+            ask = data['ask'] + " [" +  data['tag'] + "]" 
+            response = BotResponse(ask)
+            print(['tag : ' +  data['tag'], ask, response])
+
+            if(response == globalParameter['unanswered_answer']):
+                ask = data['ask']
+                response = BotResponse(ask)  
+                print(['without tag response', ask, response])             
+        else:
+            ask = data['ask']
+            response = BotResponse(ask)     
+
+        print(['result', ask, response])
+
+        if 'acceptTags' in data:
+            if data['acceptTags']=='1':
+                return response
+
+        response = response.split('[')[0]
+        print(['final', ask, response])
+
         #ask = str(data[0])
         #print(ask)
-        return BotResponse(data['ask'])
+        return response
     else:
         ask = request.args.get('ask')
         return BotResponse(ask)
