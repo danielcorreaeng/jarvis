@@ -100,7 +100,7 @@ def LoadVarsIni2(config,sections):
             globalParameter['SchedulerTasks'].append(config['SchedulerTasks'][key])   
 
 def Main(): 
-    '''create a new program with a scheduling system with the tasks passed here by parameter or configuration file. the format defined by the schedule library as schedule.every(10).seconds.do.jarvis calc and other parameters'''
+    '''create a new program with a scheduling system with the tasks passed here by parameter or configuration file (SchedulerTasks). the format defined by the schedule library as schedule.every(10).seconds.do.jarvis calc and other parameters'''
     
     global globalParameter
 
