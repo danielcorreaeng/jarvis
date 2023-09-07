@@ -1,0 +1,16 @@
+[Parameters]
+PyCommand=python
+PyScripter=code
+-PyScripter=spyder
+LoggerIp=127.0.0.1:8809
+defaultpassword=123456
+HideDatabase=hackertools,xxx,telegram
+allowedexternalrecordbase=telegram
+
+[CriticalServices]
+bla1=viewer -base=services -t imagens -p 8850
+
+[Telegram]
+token=xxxx
+alloweduser=@xxxx
+
