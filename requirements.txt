@@ -15,4 +15,7 @@ python-telegram-bot==13.7
 python-dotenv
 openai
 schedule
+playsound==1.2.2
+gtts
+
 

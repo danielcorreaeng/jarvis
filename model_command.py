@@ -5,23 +5,22 @@ import sys,os
 import subprocess
 import argparse
 import unittest
-#from jarvis_utils import * #AT YOUR OWN RISK
+from jarvis_utils import *
+
+globalParameter['INPUT_DATA_OFF'] = False
+globalParameter['OUTPUT_DATA_OFF'] = False
+globalParameter['MAINLOOP_CONTROLLER'] = False
+globalParameter['MAINWEBSERVER'] = False
+globalParameter['MAINLOOP_SLEEP_SECONDS'] = 5.0
+globalParameter['PROCESS_JARVIS'] = None
 
 VALUES_INPUT = {}
 VALUES_OUTPUT = {}
 
-class TestCases_Local(unittest.TestCase):
-    def test_case_000(self):
-        self.assertEqual('foo'.upper(), 'FOO')
-        
-    def test_case_001(self):
-        self.assertEqual('foo'.upper(), 'FOO')       
-
-def Run(command, parameters=None):
-    if(parameters != None):
-        subprocess.Popen([command, parameters], shell=True)
-    else:
-        subprocess.Popen(command, shell=True)
+class TestCases_Local(TestCases):
+    def test_dump(self):
+        check = True
+        self.assertTrue(check)        
 
 def OpenFolder(path):
 	if sys.platform == 'win32':
@@ -31,11 +30,12 @@ def Main():
     '''No describe'''
     
     global globalParameter
+
+    GetCorrectPath()
+
     global VALUES_INPUT
     global VALUES_OUTPUT
-
     VALUES_OUTPUT = VALUES_INPUT
-    #GetCorrectPath() #from jarvis_utils  
 
     #OpenFolder(r'C:\Windows')
     #Run(r'Calc')
@@ -58,13 +58,12 @@ if __name__ == '__main__':
 
     if args['tests'] == True:       
         suite = unittest.TestSuite()
-        suite.addTest(TestCases_Local("test_case_000"))
-        suite.addTest(TestCases_Local("test_case_001"))
         #suite.addTest(TestCases_Local("test_webserver_fifo")) 
+        suite.addTest(TestCases_Local("test_dump")) 
         runner = unittest.TextTestRunner()
         runner.run(suite)   
-        #globalParameter['MAINLOOP_CONTROLLER'] = False                     
-        sys.exit()     
+        globalParameter['MAINLOOP_CONTROLLER'] = False                     
+        sys.exit()    
 
     if args['file_input']:   
         with open(args['file_input']) as json_file:

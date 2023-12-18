@@ -953,6 +953,13 @@ def main(argv):
 	dbTarget = None
 	
 	fileConfiName = os.path.join(globalParameter['PathLocal'], "config.ini")
+	fileConfiNameDefault = os.path.join(globalParameter['PathLocal'], "config.ini.default")
+
+	if(os.path.isfile(fileConfiName) == False):
+		if(os.path.isfile(fileConfiNameDefault) == True):
+			shutil.copyfile(fileConfiNameDefault, fileConfiName)
+			pass
+
 	if(os.path.isfile(fileConfiName)):
 
 		if (sys.version_info > (3, 0)):
