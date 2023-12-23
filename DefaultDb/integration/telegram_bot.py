@@ -29,7 +29,7 @@ globalParameter['configFile'] = "config.ini"
 globalParameter['TypeTagPhotoOrDocs'] = "[raw]" #"[file]" 
 globalParameter['TypeTagVideo'] = "[raw]"
 
-DEFAULT, TAGS, TAGS_VIDEOS = range(3)
+DEFAULT, TAGS = range(2)
 
 def ChatBot(message):
     error = 'Hi! Sorry... No service now =('
@@ -116,6 +116,16 @@ def echo(update: Update, context: CallbackContext) -> None:
 
 def bot(update: Update, context: CallbackContext) -> int:
     """Bot response message."""
+
+    if context.user_data.get('fileids') == None:
+        context.user_data['fileids'] = []
+    if context.user_data.get('media_group_id') == None:
+        context.user_data['media_group_id'] = None
+
+    if context.user_data['media_group_id'] != None:
+        update.message.reply_text('Gorgeous! Now, send me <base> <tags> for i record multi photos, or send /skip if you don\'t want to.')
+        return TAGS
+
     print('user:' + update.message.text)
     res = ChatBot(update.message.text)
     print('bot:' + res)
@@ -125,30 +135,44 @@ def bot(update: Update, context: CallbackContext) -> int:
 def photo(update: Update, context: CallbackContext) -> int:
     """Stores the photo and asks for a base|tags."""
     user = update.message.from_user
-    photo_file = update.message.photo[-1].get_file()
-    print(photo_file) 
 
-    context.user_data['fileid'] = photo_file['file_path']
+    photo = update.message.photo[-1] 
+    photo_file = photo.get_file()
 
-    update.message.reply_text(
-        'Gorgeous! Now, send me <base> <tags> for i record the photo, or send /skip if you don\'t want to.'
-    )
+    context.user_data['fileids'].append([photo_file['file_path'], "photo"])
+    if(update.message.media_group_id != None):        
+        if(context.user_data['media_group_id'] == None):
+            update.message.reply_text('Im receiving multiple files, when you stop sending them, say hi.')
+        context.user_data['media_group_id'] = update.message.media_group_id
+        return DEFAULT
+    
+    update.message.reply_text('Gorgeous! Now, send me <base> <tags> for i record the photo, or send /skip if you don\'t want to.')
     return TAGS
 
 
 def videos(update: Update, context: CallbackContext) -> int:
     """Stores video and asks for a base|tags."""
-    user = update.message.from_user
 
-    document_file=update.message.bot.get_file(update.message.video)
-    print(document_file)
+    try:
+        user = update.message.from_user
+        document_file=update.message.bot.get_file(update.message.video)
+        print(document_file)
 
-    context.user_data['fileid'] = document_file['file_path']
+        context.user_data['fileids'].append([document_file['file_path'], "video"])
+        if(update.message.media_group_id != None):        
+            if(context.user_data['media_group_id'] == None):
+                update.message.reply_text('Im receiving multiple files, when you stop sending them, say hi.')
+            context.user_data['media_group_id'] = update.message.media_group_id
+            return DEFAULT      
 
-    update.message.reply_text(
-        'Gorgeous! Now, send me <base> <tags> for i record the file, or send /skip if you don\'t want to.'
-    )
-    return TAGS_VIDEOS
+        update.message.reply_text('Gorgeous! Now, send me <base> <tags> for i record the file, or send /skip if you don\'t want to.')
+        return TAGS
+    except:
+        pass
+
+    update.message.reply_text('Ops! Something wrong happened.')
+    
+    return DEFAULT
 
 def document(update: Update, context: CallbackContext) -> int:
     """Stores the document and asks for a base|tags."""
@@ -156,8 +180,13 @@ def document(update: Update, context: CallbackContext) -> int:
     document_file=update.message.bot.get_file(update.message.document)
     print(document_file)
 
-    context.user_data['fileid'] = document_file['file_path']
-
+    context.user_data['fileids'].append([document_file['file_path'], "doc"])
+    if(update.message.media_group_id != None):        
+        if(context.user_data['media_group_id'] == None):
+            update.message.reply_text('Im receiving multiple files, when you stop sending them, say hi.')
+        context.user_data['media_group_id'] = update.message.media_group_id
+        return DEFAULT
+    
     update.message.reply_text(
         'Gorgeous! Now, send me <base> <tags> for i record the file, or send /skip if you don\'t want to.'
     )
@@ -169,40 +198,20 @@ def define_base_tag(update: Update, context: CallbackContext) -> int:
     print('user:' + update.message.text)
 
     cmd = update.message.text
-    user_data = context.user_data
-    if 'fileid' in user_data:
-        print(context.user_data['fileid'])
-        cmd = globalParameter['TypeTagPhotoOrDocs'] + " " + context.user_data['fileid'] + " [base|tags] " + update.message.text
-
-        print(cmd)
-        del user_data['fileid']
-
-    res = ChatBot(cmd)
-
-    print('bot:' + res)
-
-    update.message.reply_text(res)
-    return DEFAULT
-
-
-def define_base_tag_videos(update: Update, context: CallbackContext) -> int:
-    """Bot record videos."""
-
-    print('user:' + update.message.text)
-
-    cmd = update.message.text
-    user_data = context.user_data
-    if 'fileid' in user_data:
-        print(context.user_data['fileid'])
-        cmd = globalParameter['TypeTagVideo'] + " " + context.user_data['fileid'] + " [base|tags] " + update.message.text
-
-        print(cmd)
-        del user_data['fileid']
-
-    res = ChatBot(cmd)
-
-    print('bot:' + res)
-
+    if 'fileids' in context.user_data:
+        for fileid, _type in context.user_data['fileids']:
+            print([fileid,_type])
+            if(_type == "doc" or _type == "photo"):
+                cmd = globalParameter['TypeTagPhotoOrDocs'] + " " + fileid + " [base|tags] " + update.message.text
+            elif(_type == "video"):
+                cmd = globalParameter['TypeTagVideo'] + " " + fileid + " [base|tags] " + update.message.text
+            else:
+                continue
+            print(cmd)
+            res = ChatBot(cmd)
+            print('bot:' + res)
+    context.user_data['fileids'].clear()
+    context.user_data['media_group_id'] = None
     update.message.reply_text(res)
     return DEFAULT
 
@@ -223,7 +232,6 @@ def Main():
 
     # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher
-
     
     if(False):
         conv_handler = ConversationHandler(
@@ -250,7 +258,6 @@ def Main():
                             MessageHandler(Filters.video, videos, Filters.user(username=globalParameter['AllowedUser'])),
                             MessageHandler(Filters.text & ~Filters.command, bot, Filters.user(username=globalParameter['AllowedUser']))],
                     TAGS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag, Filters.user(username=globalParameter['AllowedUser'])), CommandHandler('skip', cancel, Filters.user(username=globalParameter['AllowedUser']))],
-                    TAGS_VIDEOS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag_videos), CommandHandler('skip', cancel)],
                 },
                 fallbacks=[CommandHandler('cancel', cancel, Filters.user(username=globalParameter['AllowedUser'])), CommandHandler('skip', cancel, Filters.user(username=globalParameter['AllowedUser']))],
             )
