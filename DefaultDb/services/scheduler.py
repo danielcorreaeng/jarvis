@@ -100,7 +100,7 @@ def LoadVarsIni2(config,sections):
             globalParameter['SchedulerTasks'].append(config['SchedulerTasks'][key])   
 
 def Main(): 
-    '''create a new program with a scheduling system with the tasks passed here by parameter or configuration file (SchedulerTasks). the format defined by the schedule library as schedule.every(10).seconds.do.jarvis calc and other parameters'''
+    '''create a new program with a scheduling system with the tasks passed here by parameter(separated by -) or configuration file ([SchedulerTasks][bla1]..[SchedulerTasks][blaN]). the format defined by the schedule library like schedule.every(10).seconds.do.jarvis calc and other parameters. E.g. jarvis scheduler -base=services --task='schedule.every(10).seconds.do.jarvis-calc' --lifetime=50'''
     
     global globalParameter
 
@@ -144,7 +144,7 @@ if __name__ == '__main__':
 
     if args['task'] is not None:
         print(str(args['task']))
-        globalParameter['SchedulerTasks'].append(str(args['task']))
+        globalParameter['SchedulerTasks'].append(str(args['task']).replace("-"," "))
 
     if args['config'] is not None:
         print('Config.ini: ' + args['config'])
