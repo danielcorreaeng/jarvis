@@ -159,6 +159,11 @@ def videos(update: Update, context: CallbackContext) -> int:
         print(document_file)
 
         context.user_data['fileids'].append([document_file['file_path'], "video"])
+        if(update.message.media_group_id != None):        
+            if(context.user_data['media_group_id'] == None):
+                update.message.reply_text('Im receiving multiple files, when you stop sending them, say hi.')
+            context.user_data['media_group_id'] = update.message.media_group_id
+            return DEFAULT      
 
         update.message.reply_text('Gorgeous! Now, send me <base> <tags> for i record the file, or send /skip if you don\'t want to.')
         return TAGS
@@ -176,7 +181,12 @@ def document(update: Update, context: CallbackContext) -> int:
     print(document_file)
 
     context.user_data['fileids'].append([document_file['file_path'], "doc"])
-
+    if(update.message.media_group_id != None):        
+        if(context.user_data['media_group_id'] == None):
+            update.message.reply_text('Im receiving multiple files, when you stop sending them, say hi.')
+        context.user_data['media_group_id'] = update.message.media_group_id
+        return DEFAULT
+    
     update.message.reply_text(
         'Gorgeous! Now, send me <base> <tags> for i record the file, or send /skip if you don\'t want to.'
     )
