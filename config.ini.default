@@ -2,7 +2,7 @@
 PyCommand=python
 PyScripter=code
 -PyScripter=spyder
-LoggerIp=127.0.0.1:8809
+-LoggerIp=127.0.0.1:8810
 defaultpassword=123456
 HideDatabase=hackertools,xxx,telegram
 allowedexternalrecordbase=telegram

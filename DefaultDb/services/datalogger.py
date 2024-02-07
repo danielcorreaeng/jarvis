@@ -33,32 +33,59 @@ class MyLog():
     def __del__(self):
         pass
 
-    def sqlCreateLog(self):
-        return "CREATE TABLE log (localid integer PRIMARY KEY AUTOINCREMENT , id string, user string, host string, start string, finish string, alive string, command string, log string)"
+    def CheckDb(self, db):
+        result = False
 
-    def Insert(self, _id , _user , _host , _time , _command , _status):
+        try:
+            checkdb = os.path.isfile(db)          
+            conn = sqlite3.connect(db)
+            cursor = conn.cursor()		
+
+            if(checkdb == False):
+                sql = "CREATE TABLE log (localid integer PRIMARY KEY AUTOINCREMENT , id string, user string, host string, start string, finish string, alive string, command string, log string, tag string)"
+                cursor.execute(sql)
+                conn.commit()
+            else:
+                sql = "SELECT COUNT(*) AS CNTREC FROM pragma_table_info('log') WHERE name='tag'"
+                cursor.execute(sql)
+                result = cursor.fetchall()[0][0]
+
+                if(int(result)==0):
+                    sql = "ALTER TABLE log ADD tag TEXT DEFAULT command"
+                    cursor.execute(sql)
+                    conn.commit()
+                    sql = "UPDATE log SET tag = 'command' WHERE id>0"
+                    cursor.execute(sql)
+                    conn.commit()
+
+            conn.close()
+
+            result = True
+        except:
+            raise MyException("MyDb : CheckDb : Internal Error.")
+
+        return result
+
+    #def sqlCreateLog(self):
+    #    return "CREATE TABLE log (localid integer PRIMARY KEY AUTOINCREMENT , id string, user string, host string, start string, finish string, alive string, command string, log string)"
+
+    def Insert(self, _id , _user , _host , _time , _command , _status, _tag):
         result = False
 
         try:
             db = globalParameter['PathDB']
-
-            if(os.path.isfile(db) == False):
-                conn = sqlite3.connect(db)
-                cursor = conn.cursor()
-                cursor.execute(self.sqlCreateLog())
-                conn.commit()
-                conn.close()
+            self.CheckDb(db)
 
             conn = sqlite3.connect(db)
             cursor = conn.cursor()
             sql = ''
 
             if(_status == 'start'):
-                sql =  "update log set user='"+ _user +"', host='"+ _host +"', command='"+ _command +"', log='"+ _status +"', start='"+ _time +"' where id='"+ _id +"'"
+                sql =  "update log set user='"+ _user +"', host='"+ _host +"', command='"+ _command +"', log='"+ _status +"', tag='"+ _tag +"', start='"+ _time +"' where id='"+ _id +"'"
             elif(_status == 'finish'):
-                sql =  "update log set user='"+ _user +"', host='"+ _host +"', command='"+ _command +"', log='"+ _status +"', finish='"+ _time +"' where id='"+ _id +"'"
+                sql =  "update log set user='"+ _user +"', host='"+ _host +"', command='"+ _command +"', log='"+ _status +"', tag='"+ _tag +"', finish='"+ _time +"' where id='"+ _id +"'"
             elif(_status == 'alive'):
-                sql =  "update log set user='"+ _user +"', host='"+ _host +"', command='"+ _command +"', log='"+ _status +"', alive='"+ _time +"' where id='"+ _id +"'"
+                sql =  "update log set user='"+ _user +"', host='"+ _host +"', command='"+ _command +"', log='"+ _status +"', tag='"+ _tag +"', alive='"+ _time +"' where id='"+ _id +"'"
             print(sql)
 
             cursor.execute(sql)
@@ -68,11 +95,11 @@ class MyLog():
 
             if(rowchange==0):
                 if(_status == 'start'):
-                    sql = "insert or ignore into log (id , user , host , start, finish, alive, command , log) values ('"+ _id +"', '"+ _user +"', '"+ _host +"', '"+ _time +"','','','"+ _command +"','"+ _status +"' )"
+                    sql = "insert or ignore into log (id , user , host , tag , start, finish, alive, command , log) values ('"+ _id +"', '"+ _user +"', '"+ _host +"', '"+ _tag +"', '"+ _time +"','','','"+ _command +"','"+ _status +"' )"
                 elif(_status == 'finish'):
-                    sql =  "insert or ignore into log (id , user , host , start, finish, alive , command , log) values ('"+ _id +"','"+ _user +"', '"+ _host +"', '','"+ _time +"','','"+ _command +"','"+ _status +"' )"
+                    sql =  "insert or ignore into log (id , user , host , tag , start, finish, alive , command , log) values ('"+ _id +"','"+ _user +"', '"+ _host +"', '"+ _tag +"', '','"+ _time +"','','"+ _command +"','"+ _status +"' )"
                 elif(_status == 'alive'):
-                    sql =  "insert or ignore into log (id , user , host , start, finish, alive , command , log) values ('"+ _id +"','"+ _user +"', '"+ _host +"', '"+ _time +"','','','"+ _command +"','"+ _status +"' )"
+                    sql =  "insert or ignore into log (id , user , host , tag , start, finish, alive , command , log) values ('"+ _id +"','"+ _user +"', '"+ _host +"', '"+ _tag +"', '"+ _time +"','','','"+ _command +"','"+ _status +"' )"
                 print(sql)
                 #return
                 cursor.execute(sql)
@@ -85,23 +112,19 @@ class MyLog():
 
         return result
 
-    def SelectAll(self):
+    def SelectAll(self, tag=None):
         result = None
 
         try:
             db = globalParameter['PathDB']
-
-            if(os.path.isfile(db) == False):
-                conn = sqlite3.connect(db)
-                cursor = conn.cursor()
-                cursor.execute(self.sqlCreateLog())
-                conn.commit()
-                conn.close()
+            self.CheckDb(db)
 
             print(db)
             conn = sqlite3.connect(db)
             cursor = conn.cursor()
-            sql = "SELECT * FROM log order by localid desc LIMIT 50"
+            sql = "SELECT localid , id , user , host , start , finish , alive , command , log , tag FROM log order by localid desc LIMIT 50"
+            if(tag != None):
+                sql = "SELECT localid , id , user , host , start , finish , alive , command , log , tag FROM log WHERE tag='" + tag + "' order by localid desc LIMIT 50"
             print(sql)
             cursor.execute(sql)
 
@@ -132,9 +155,13 @@ def Log():
         _time = data['time']
         _command = data['command']
         _status = data['status']
+        _tag = 'command'
+        if 'tag' in data.keys():
+            _tag = data['tag']
+
 
         db = MyLog()
-        db.Insert(_id , _user , _host , _time , _command , _status)
+        db.Insert(_id , _user , _host , _time , _command , _status, _tag)
         #db.SelectAll()
         return 'ok'
 
@@ -144,7 +171,7 @@ def Table():
 
     maskIp = globalParameter['LocalIp'].split('.')
     maskIp = str(maskIp[0]) + '.' + str(maskIp[1]) + '.' + str(maskIp[2]) 
-    
+
     test = maskIp in str(request.remote_addr) 
         
     if test == True:
@@ -153,25 +180,27 @@ def Table():
         print("not authorized")
         return "not authorized"
 
-    res = makeTable()
+    tag = request.args.get('tag') 
+    res = makeTable(tag)
+
     return res    
 
 @app.route('/')
 def index():
     return str(Main.__doc__) + " | ip server : " +  str(globalParameter['LocalIp']) + ":" + str(globalParameter['LocalPort'])
 
-def makeTable():
+def makeTable(tag):
     TITLE = 'TABLE'
     DATA =  ''
     DATA += '<div class="table-responsive"><table id="example1" class="table table-bordered table-striped">'
     DATA += '<thead>'
-    DATA += '<tr><th>#</th><th>user</th><th>host</th><th>Start</th><th>Finish</th><th>Alive</th><th>Command</th><th>status</th></tr>'
+    DATA += '<tr><th>#</th><th>user</th><th>host</th><th>Start</th><th>Finish</th><th>Alive</th><th>Command</th><th>status</th><th>tag</th></tr>'
     DATA += '</thead>'
     DATA += '<tbody>'
 
     list_process_checked = []
     db = MyLog()
-    rows = db.SelectAll()
+    rows = db.SelectAll(tag)
 
     if(len(rows) > 0):
         for row in rows:
@@ -212,15 +241,22 @@ def makeTable():
                     DATA += "Alive"
                 else:
                     DATA += "Dead"
-            
+
+            DATA += '</td><td>'
+            DATA += str(row[9]).replace(' ',',')            
             DATA += '</td></tr>'
             pass
 
     DATA += '</tbody>'
-    DATA += '<tfoot><tr><th>#</th><th>user</th><th>host</th><th>Start</th><th>Finish</th><th>Alive</th><th>Command</th><th>status</th></tr></tfoot>'
+    DATA += '<tfoot><tr><th>#</th><th>user</th><th>host</th><th>Start</th><th>Finish</th><th>Alive</th><th>Command</th><th>status</th><th>tag</th></tr></tfoot>'
     DATA += '</table></div>'
     PAGE_SCRIPT = "<script>$(function () {$('#example1').DataTable({'paging': true,'lengthChange': false,'searching' : true,'ordering': true,'info': true,'autoWidth' : false,'order': [[ 5, 'desc' ]],dom: 'Bfrtip',buttons: ['copy', 'excel', 'pdf', 'print']})})</script>"
-    return makePage(TITLE, DATA, PAGE_SCRIPT)
+
+
+    local_addr = 'http://' + str(globalParameter['LocalIp']) + ":" + str(globalParameter['LocalPort'])
+    PAGE_MENU = '''<nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse"><div class="position-sticky pt-3"><ul class="nav flex-column"><li class="nav-item"><a class="nav-link active" aria-current="page" href="''' + local_addr + '''/list/log"><span data-feather="home"></span>Commands</a></li><li class="nav-item"><a class="nav-link" href="''' + local_addr + '''/list/log?tag=service"><span data-feather="file"></span>Services</a></li></ul></div></nav>'''
+
+    return makePage(TITLE, DATA, PAGE_SCRIPT,'', PAGE_MENU)
 
 def CheckProcess(process_name_target, process_arg_target):
     result = False
@@ -257,6 +293,8 @@ def Main():
         
     try:
         if(globalParameter['MAINWEBSERVER'] == True):
+            rl = RemoteLog()
+            rl.CheckRestAPIThread(command="datalogger", host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'])
             #app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'], ssl_context='adhoc') 
             app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort']) 
         pass
