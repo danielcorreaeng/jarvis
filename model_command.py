@@ -40,6 +40,7 @@ def Main():
     #OpenFolder(r'C:\Windows')
     #Run(r'Calc')
     #Run(r'C:\Program Files\Google\Chrome\Application\chrome.exe','-incognito www.google.com.br')
+    #RunJarvis("Calc")
     #VALUES_OUTPUT['vartest'] = 'test'
 	
 if __name__ == '__main__':

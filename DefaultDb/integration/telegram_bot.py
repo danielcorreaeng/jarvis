@@ -8,6 +8,8 @@ import getpass
 import datetime
 import socket
 import requests
+import bs4
+import requests
 
 from telegram import Update, ForceReply,ReplyKeyboardRemove
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler
@@ -29,7 +31,18 @@ globalParameter['configFile'] = "config.ini"
 globalParameter['TypeTagPhotoOrDocs'] = "[raw]" #"[file]" 
 globalParameter['TypeTagVideo'] = "[raw]"
 
+globalParameter['PINTEREST_IMAGECLASS'] = 'hCL kVc L4E MIw'
+
 DEFAULT, TAGS = range(2)
+
+def get_link_from_url_pinterest(link):
+    with requests.Session() as s:
+        html_page = s.get(link,headers={"User-Agent":"Mozilla/5.0"})
+        soup = bs4.BeautifulSoup(html_page.text,'html.parser')
+
+        link = soup.find("img", class_=globalParameter['PINTEREST_IMAGECLASS']).get('src')
+
+    return link   
 
 def ChatBot(message):
     error = 'Hi! Sorry... No service now =('
@@ -192,6 +205,29 @@ def document(update: Update, context: CallbackContext) -> int:
     )
     return TAGS    
 
+def link(update: Update, context: CallbackContext) -> int:
+    """Check\Stores the link and asks for a base|tags."""
+    user = update.message.from_user
+    text = update.message.text + str(' ')
+
+    addr_link_start = text.find('http')
+    addr_link_end = text.find(' ', addr_link_start+1)
+    link = text[addr_link_start:addr_link_end]
+
+    update.message.reply_text('link: ' + str(link))
+
+    if 'pin.it' in link or 'pinterest.com' in link: 
+        link = get_link_from_url_pinterest(link)
+
+        if(link!=None):
+            update.message.reply_text('pinterest link: ' + str(link))
+            context.user_data['fileids'].append([str(link), "photo"])
+
+            update.message.reply_text('Gorgeous! Now, send me <base> <tags> for i record the photo, or send /skip if you don\'t want to.')
+            return TAGS
+
+    return DEFAULT
+
 def define_base_tag(update: Update, context: CallbackContext) -> int:
     """Bot record file."""
 
@@ -241,9 +277,9 @@ def Main():
                         MessageHandler(Filters.photo, photo),
                         MessageHandler(Filters.document, document),
                         MessageHandler(Filters.video, videos),
+                        MessageHandler(Filters.entity('url'), link),
                         MessageHandler(Filters.text & ~Filters.command, bot)],
                 TAGS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag), CommandHandler('skip', cancel)],
-                TAGS_VIDEOS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag_videos), CommandHandler('skip', cancel)],
             },
             fallbacks=[CommandHandler('cancel', cancel), CommandHandler('skip', cancel)],
         )
@@ -256,6 +292,7 @@ def Main():
                             MessageHandler(Filters.photo, photo, Filters.user(username=globalParameter['AllowedUser'])),
                             MessageHandler(Filters.document, document, Filters.user(username=globalParameter['AllowedUser'])),
                             MessageHandler(Filters.video, videos, Filters.user(username=globalParameter['AllowedUser'])),
+                            MessageHandler(Filters.entity('url'), link, Filters.user(username=globalParameter['AllowedUser'])),
                             MessageHandler(Filters.text & ~Filters.command, bot, Filters.user(username=globalParameter['AllowedUser']))],
                     TAGS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag, Filters.user(username=globalParameter['AllowedUser'])), CommandHandler('skip', cancel, Filters.user(username=globalParameter['AllowedUser']))],
                 },
