@@ -159,7 +159,8 @@ def Main():
     GetCorrectPath()
 
     try:        
-        globalParameter['LocalIp'] = GetCorrectIp(socket.gethostbyname_ex(socket.gethostname()))
+        if(globalParameter['LocalIp'] == None):
+            globalParameter['LocalIp'] = GetCorrectIp(socket.gethostbyname_ex(socket.gethostname()))
         globalParameter['PublicIp'] = GetPublicIp()
     except:
         print('error ip')

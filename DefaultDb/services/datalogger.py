@@ -269,7 +269,8 @@ def Main():
     FixVars()
 
     try:        
-        globalParameter['LocalIp'] = GetCorrectIp(socket.gethostbyname_ex(socket.gethostname()))
+        if(globalParameter['LocalIp'] == None):
+            globalParameter['LocalIp'] = GetCorrectIp(socket.gethostbyname_ex(socket.gethostname()))
     except:
         print('error ip')
         
