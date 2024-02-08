@@ -228,8 +228,8 @@ def makeTable(tag):
             DATA += str(row[6]).replace('_',' ')
             DATA += '</td><td>'
 
-            if(len(row[7])>50):
-                DATA += str(row[7][:50]) + "..."
+            if(len(row[7])>60):
+                DATA += str(row[7][:60]) + "..."
             else:
                 DATA += str(row[7])
             DATA += '</td><td>'
@@ -258,24 +258,6 @@ def makeTable(tag):
 
     return makePage(TITLE, DATA, PAGE_SCRIPT,'', PAGE_MENU)
 
-def CheckProcess(process_name_target, process_arg_target):
-    result = False
-    for proc in psutil.process_iter():
-        if str(proc.name).find(str(process_name_target))>=0:
-            try:
-                #print(proc.pid)
-                #print(proc.cmdline())
-                #print(cmdline)            
-                cmdline = ' '.join(proc.cmdline())
-    
-                if str(cmdline).find(str(process_arg_target))>=0:
-                    result = True
-                    break
-            except:
-                pass    
-
-    return result
-
 def Main():
     """logger of jarvis | list logs in web (/list/log)"""     
 
@@ -294,7 +276,7 @@ def Main():
     try:
         if(globalParameter['MAINWEBSERVER'] == True):
             rl = RemoteLog()
-            rl.CheckRestAPIThread(command="datalogger", host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'])
+            rl.CheckRestAPIThread(command="datalogger -base=services", host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'])
             #app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'], ssl_context='adhoc') 
             app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort']) 
         pass

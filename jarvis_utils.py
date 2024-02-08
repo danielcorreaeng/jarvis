@@ -172,7 +172,9 @@ class RemoteLog():
         try:
             testLogger = requests.get('http://' + globalParameter['LoggerIp'])
             serviceTarget = "http://" + str(host) + ':' + str(port)
-            command = "someservice + create commmand with -p and -i..."
+
+            if "-p " not in command and "-i " not in command :
+                command = command + " -p " + str(port) + " -i " + str(host)
 
             if testLogger.status_code == 200:
                 print("Hey. Log Server is online.")
@@ -215,6 +217,51 @@ class RemoteLog():
     def CheckRestAPIThread(self, command, host, port):
         threadLog = Thread(target=self.CheckRestAPI, args=(command, host, port,))
         threadLog.start()
+
+def CheckProcess(process_name_target, process_arg_target):
+    result = False
+
+    try:
+        process_arg_target = str(process_arg_target)
+        if "-p " in process_arg_target and "-i " in process_arg_target:
+            start = process_arg_target.find("-p") + 3
+            stop =  process_arg_target.find(" ", start)
+            if(stop<0):
+                port = process_arg_target[start:]
+            else:
+                port = process_arg_target[start:stop]
+
+            start = process_arg_target.find("-i") + 3
+            stop =  process_arg_target.find(" ", start)
+            if(stop<0):
+                ip = process_arg_target[start:]
+            else:
+                ip = process_arg_target[start:stop]
+            
+            url = "http://" + str(ip) + ':' + str(port)
+            testProcess = requests.get(url)
+
+            if testProcess.status_code == 200:
+                result = True 
+    except:
+        pass  
+
+    if(result == False):
+        for proc in psutil.process_iter():
+            if str(proc.name).find(str(process_name_target))>=0:
+                try:
+                    #print(proc.pid)
+                    #print(proc.cmdline())
+                    #print(cmdline)            
+                    cmdline = ' '.join(proc.cmdline())
+
+                    if str(cmdline).find(str(process_arg_target))>=0:
+                        result = True
+                        break
+                except:
+                    pass    
+
+    return result
 
 def Run(command, parameters=None, wait=False):
     #print(command)
