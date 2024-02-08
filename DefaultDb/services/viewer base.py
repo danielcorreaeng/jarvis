@@ -260,6 +260,7 @@ def Main():
     
     GetCorrectPath()
 
+    target = globalParameter['PathDB']
     globalParameter['PathDB'] = os.path.join(globalParameter['PathLocal'], "Db", globalParameter['TargetDB'] + ".db")
 
     try:        
@@ -270,6 +271,8 @@ def Main():
 
     try:
         if(globalParameter['MAINWEBSERVER'] == True):
+            rl = RemoteLog()
+            rl.CheckRestAPIThread(command="viewer base -base=services -t " + target, host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'])
             #app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'], ssl_context='adhoc') 
             app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort']) 
             pass
@@ -281,7 +284,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=Main.__doc__)
     parser.add_argument('-d','--description', help='Description of program', action='store_true')
     parser.add_argument('-u','--tests', help='Execute tests', action='store_true')
-    parser.add_argument('-t','--target', help='Base target (full path)')
+    parser.add_argument('-t','--target', help='target base')
     parser.add_argument('-p','--port', help='Service running in target port')
     parser.add_argument('-i','--ip', help='Service running in target ip')
     parser.add_argument('-c','--config', help='Config.ini file')

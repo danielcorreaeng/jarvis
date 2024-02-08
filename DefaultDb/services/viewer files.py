@@ -208,6 +208,8 @@ def Main():
 
     try:
         if(globalParameter['MAINWEBSERVER'] == True):
+            rl = RemoteLog()
+            rl.CheckRestAPIThread(command="viewer files -base=services -t " + globalParameter['TargetPath'], host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'])
             #app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'], ssl_context='adhoc') 
             app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort']) 
             pass
