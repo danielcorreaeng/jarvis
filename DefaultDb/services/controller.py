@@ -60,7 +60,7 @@ def makeTable():
     DATA =  ''
     DATA += '<div class="table-responsive"><table id="example1" class="table table-bordered table-striped">'
     DATA += '<thead>'
-    DATA += '<tr><th>#</th><th>host</th><th>process</th><th>status</th></tr>'
+    DATA += '<tr><th>#</th><th>host</th><th>process</th><th>status</th><th>method</th></tr>'
     DATA += '</thead>'
     DATA += '<tbody>'
     #DATA += '<tr><th>#</th><th>host</th><th>process</th><th>status</th></tr>'
@@ -78,7 +78,7 @@ def makeTable():
                 pass
             else:
                 process_arg_target = str(row[0])    
-                alive = CheckProcess("python", process_arg_target)
+                alive, method = CheckProcess("python", process_arg_target)
             
             DATA += '<tr><td>'
             DATA += str(count)
@@ -88,35 +88,18 @@ def makeTable():
             DATA += str(row)
             DATA += '</td><td>'
             if(alive == True):
-                DATA += "Alive"
+                DATA += 'Alive </td><td> ' + method + '</td><td>'
             else:
-                DATA += "Dead"
+                DATA += 'Dead </td><td> ' + method + '</td><td>'
+
             DATA += '</td></tr>'
 
     DATA += '</tbody>'
-    DATA += '<tfoot><tr><th>#</th><th>host</th><th>process</th><th>status</th></tr></tfoot>'
+    DATA += '<tfoot><tr><th>#</th><th>host</th><th>process</th><th>status</th><th>method</th></tr></tfoot>'
     DATA += '</table></div>'
     PAGE_SCRIPT = "<script>$(function () {$('#example1').DataTable({'paging': true,'lengthChange': false,'searching' : true,'ordering': true,'info': true,'autoWidth' : false,'order': [[ 0, 'desc' ]],dom: 'Bfrtip',buttons: ['copy', 'excel', 'pdf', 'print']})})</script>"
     return makePage(TITLE, DATA, PAGE_SCRIPT)
     
-def CheckProcess(process_name_target, process_arg_target):
-    result = False
-    for proc in psutil.process_iter():
-        if str(proc.name).find(str(process_name_target))>=0:
-            try:
-                #print(proc.pid)
-                #print(proc.cmdline())
-                #print(cmdline)            
-                cmdline = ' '.join(proc.cmdline())
-    
-                if str(cmdline).find(str(process_arg_target))>=0:
-                    result = True
-                    break
-            except:
-                pass    
-
-    return result
-     
 def mainThread2():
     global globalParameter
 
@@ -142,7 +125,7 @@ def mainLoopProcess2(input_data):
         for row in rows:                
             alive = False
             process_arg_target = str(row)    
-            alive = CheckProcess("python", process_arg_target)
+            alive, method = CheckProcess("python", process_arg_target)
             
             if(alive == False):
                 print(process_arg_target + ' is dead')
@@ -152,7 +135,9 @@ def mainLoopProcess2(input_data):
                 print('reopen ' + process_arg_target)
                 RunJarvis(process_arg_target, None, False)   
 
-                alive = CheckProcess("python", process_arg_target)
+                time.sleep(30.0)
+
+                alive, method = CheckProcess("python", process_arg_target)
                 if(alive == False):
                     print(process_arg_target + ' is real dead')
                     RunJarvis('error handler ' + globalParameter['LocalUsername'] + '@' + globalParameter['LocalHostname'] + ' it did not open ' + process_arg_target.replace("-base=", "in base ") + ' host:' + globalParameter['LocalHostname'] + '', None, False)   
@@ -187,6 +172,8 @@ def Main():
 
     try:
         if(globalParameter['MAINWEBSERVER'] == True):
+            rl = RemoteLog()
+            rl.CheckRestAPIThread(command="controller -base=services", host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'])
             #app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'], ssl_context='adhoc') 
             app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort']) 
             pass

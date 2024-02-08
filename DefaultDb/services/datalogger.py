@@ -211,7 +211,7 @@ def makeTable(tag):
                 alive = False
             else:
                 if(str(row[3]) == str(globalParameter['LocalHostname'])):
-                    alive = CheckProcess("python", process_arg_target)
+                    alive, method = CheckProcess("python", process_arg_target)
                 list_process_checked.append(process_arg_target)
             
             DATA += '<tr><td>'
@@ -238,9 +238,9 @@ def makeTable(tag):
                 DATA += "Remote"
             else:
                 if(alive == True):
-                    DATA += "Alive"
+                    DATA += "Alive | " + method
                 else:
-                    DATA += "Dead"
+                    DATA += "Dead | " + method
 
             DATA += '</td><td>'
             DATA += str(row[9]).replace(' ',',')            

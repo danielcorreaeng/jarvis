@@ -220,8 +220,10 @@ class RemoteLog():
 
 def CheckProcess(process_name_target, process_arg_target):
     result = False
+    method = "-"
 
     try:
+        method = "checked by restapi"
         process_arg_target = str(process_arg_target)
         if "-p " in process_arg_target and "-i " in process_arg_target:
             start = process_arg_target.find("-p") + 3
@@ -247,6 +249,7 @@ def CheckProcess(process_name_target, process_arg_target):
         pass  
 
     if(result == False):
+        method = "checked by process list"
         for proc in psutil.process_iter():
             if str(proc.name).find(str(process_name_target))>=0:
                 try:
@@ -261,7 +264,7 @@ def CheckProcess(process_name_target, process_arg_target):
                 except:
                     pass    
 
-    return result
+    return result, method
 
 def Run(command, parameters=None, wait=False):
     #print(command)
