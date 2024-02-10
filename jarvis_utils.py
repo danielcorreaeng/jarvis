@@ -19,6 +19,7 @@ from threading import Thread
 from flask import Flask, request, jsonify, send_from_directory 
 from flask import Flask, Response, redirect, url_for, request, session, abort
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user 
+from pathlib import Path
 
 INPUT_DATA = []
 OUTPUT_DATA = []
@@ -40,6 +41,7 @@ globalParameter['LocalUsername'] = getpass.getuser().replace(' ','_')
 globalParameter['LocalHostname'] = socket.gethostname().replace(' ','_')
 globalParameter['PathDB_All'] = os.path.join(globalParameter['PathLocal'], "Db")
 globalParameter['PathDB'] = os.path.join(globalParameter['PathLocal'], "Db" , globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] + ".db")
+globalParameter['LoggerIp'] = str(socket.gethostbyname(socket.gethostname())) +  ':8810'
 
 globalParameter['INPUT_DATA_OFF'] = False
 globalParameter['OUTPUT_DATA_OFF'] = False
@@ -160,6 +162,109 @@ class MyDB():
             raise MyException("MyDb : Select : Internal Error.")
 
         return result
+
+
+class RemoteLog():
+    def __init__(self):
+        self.log = False
+
+    def CheckRestAPI(self, command, host, port):
+        try:
+            testLogger = requests.get('http://' + globalParameter['LoggerIp'])
+            serviceTarget = "http://" + str(host) + ':' + str(port)
+
+            if "-p " not in command and "-i " not in command :
+                command = command + " -p " + str(port) + " -i " + str(host)
+
+            if testLogger.status_code == 200:
+                print("Hey. Log Server is online.")
+                id = str(Path(sys.argv[0]).stem).replace("_", "")
+
+                data = []
+                localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
+                data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : command , 'time' : localTime , 'status' : 'start', 'tag' : 'service'})
+
+                logger = "http://" + globalParameter['LoggerIp'] + "/log"
+                headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+                requests.post(logger, data=json.dumps(data), headers=headers)
+
+                self.log = True
+                time.sleep(10.0)
+                while (self.log):
+                    testTarget= requests.get(serviceTarget)
+                    
+                    if testTarget.status_code == 200:
+                        self.log = True
+                    else:
+                        self.log = False
+
+                    localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
+                    #print(localTime)
+                    data[:] = []
+                    data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : command , 'time' : localTime , 'status' : 'alive', 'tag' : 'service'})
+                    requests.post(logger, data=json.dumps(data), headers=headers)
+                    time.sleep(60.0)
+
+                data[:] = []
+                localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
+                data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : command , 'time' : localTime , 'status' : 'finish', 'tag' : 'service'})
+                requests.post(logger, data=json.dumps(data), headers=headers)
+            else:
+                pass
+        except:
+            pass
+
+    def CheckRestAPIThread(self, command, host, port):
+        threadLog = Thread(target=self.CheckRestAPI, args=(command, host, port,))
+        threadLog.start()
+
+def CheckProcess(process_name_target, process_arg_target):
+    result = False
+    method = "-"
+
+    try:
+        method = "checked by restapi"
+        process_arg_target = str(process_arg_target)
+        if "-p " in process_arg_target and "-i " in process_arg_target:
+            start = process_arg_target.find("-p") + 3
+            stop =  process_arg_target.find(" ", start)
+            if(stop<0):
+                port = process_arg_target[start:]
+            else:
+                port = process_arg_target[start:stop]
+
+            start = process_arg_target.find("-i") + 3
+            stop =  process_arg_target.find(" ", start)
+            if(stop<0):
+                ip = process_arg_target[start:]
+            else:
+                ip = process_arg_target[start:stop]
+            
+            url = "http://" + str(ip) + ':' + str(port)
+            testProcess = requests.get(url)
+
+            if testProcess.status_code == 200:
+                result = True 
+    except:
+        pass  
+
+    if(result == False):
+        method = "checked by process list"
+        for proc in psutil.process_iter():
+            if str(proc.name).find(str(process_name_target))>=0:
+                try:
+                    #print(proc.pid)
+                    #print(proc.cmdline())
+                    #print(cmdline)            
+                    cmdline = ' '.join(proc.cmdline())
+
+                    if str(cmdline).find(str(process_arg_target))>=0:
+                        result = True
+                        break
+                except:
+                    pass    
+
+    return result, method
 
 def Run(command, parameters=None, wait=False):
     #print(command)
@@ -394,7 +499,7 @@ def makeLoginPage(TITLE):
     res = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content=""><meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors"><meta name="generator" content="Hugo 0.84.0"><title>' + TITLE + '</title><link rel="canonical" href="https://getbootstrap.com/docs/5.0/examples/sign-in/"><link href="' + ext_bootstrap_css + '" rel="stylesheet"><style>html,body {height: 100%;}body {display: flex;align-items: center;padding-top: 40px;padding-bottom: 40px;background-color: #f5f5f5;}.form-signin {width: 100%;max-width: 330px;padding: 15px;margin: auto;}.form-signin .checkbox {font-weight: 400;}.form-signin .form-floating:focus-within {z-index: 2;}.form-signin input[type="text"] {margin-bottom: -1px;border-bottom-right-radius: 0;border-bottom-left-radius: 0;}.form-signin input[type="password"] {margin-bottom: 10px;border-top-left-radius: 0;border-top-right-radius: 0;}</style><style>.bd-placeholder-img {font-size: 1.125rem;text-anchor: middle;-webkit-user-select: none;-moz-user-select: none;user-select: none;}@media (min-width: 768px) {.bd-placeholder-img-lg {font-size: 3.5rem;}}</style></head><body class="text-center"><main class="form-signin"><form action="" method="post"> <h1 class="h3 mb-3 fw-normal">authentication</h1><div class="form-floating"><input type="text" class="form-control" name="username" id="floatingInput" placeholder="name"><label for="floatingInput">Login</label></div><div class="form-floating"><input type="password" class="form-control" name="password" id="floatingPassword" placeholder="Password"><label for="floatingPassword">Password</label></div><button class="w-100 btn btn-lg btn-primary" type="submit" value=Login>Login</button></form></main></body></html>'
     return res    
 
-def makePage(TITLE, DATA, PAGE_SCRIPT = '', PAGE_PAGE_CSS = ''):
+def makePage(TITLE, DATA, PAGE_SCRIPT = '', PAGE_PAGE_CSS = '', PAGE_MENU = ''):
     ext_bootstrap_css = 'https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css'
     ext_jquery_js = 'https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js'
     ext_dataTables_css = 'https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css'
@@ -411,7 +516,10 @@ def makePage(TITLE, DATA, PAGE_SCRIPT = '', PAGE_PAGE_CSS = ''):
     ext_buttons_print_js = 'https://cdn.datatables.net/buttons/1.7.1/js/buttons.print.min.js'
 
     DEFAULT_PAGE_MENU = '<nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse"><div class="position-sticky pt-3"><ul class="nav flex-column"><li class="nav-item"><a class="nav-link active" aria-current="page" href="#"><span data-feather="home"></span>Dashboard</a></li><li class="nav-item"><a class="nav-link" href="#"><span data-feather="file"></span>Outros</a></li></ul></div></nav>'
-    
+    if(PAGE_MENU != ''):
+        DEFAULT_PAGE_MENU = PAGE_MENU
+
+
     DEFAULT_PAGE_HEADER = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content=""><meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors"><meta name="generator" content="Hugo 0.84.0"><title></title><link rel="canonical" href="https://getbootstrap.com/docs/5.0/examples/dashboard/"><link href="' + ext_bootstrap_css + '" rel="stylesheet" crossorigin="anonymous"><script src="' + ext_jquery_js + '"></script><link href="' + ext_dataTables_css + '" rel="stylesheet"><style>.bd-placeholder-img {font-size: 1.125rem;text-anchor: middle;-webkit-user-select: none;-moz-user-select: none;user-select: none;}@media (min-width: 768px) {.bd-placeholder-img-lg {font-size: 3.5rem;}}</style><style>body {font-size: .875rem;}.feather {width: 16px;height: 16px;vertical-align: text-bottom;}/** Sidebar*/.sidebar {position: fixed;top: 0;/* rtl:raw:right: 0;*/bottom: 0;/* rtl:remove */left: 0;z-index: 100; /* Behind the navbar */padding: 48px 0 0; /* Height of navbar */box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);}@media (max-width: 767.98px) {.sidebar {top: 5rem;}}.sidebar-sticky {position: relative;top: 0;height: calc(100vh - 48px);padding-top: .5rem;overflow-x: hidden;overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */}.sidebar .nav-link {font-weight: 500;color: #333;}.sidebar .nav-link .feather {margin-right: 4px;color: #727272;}.sidebar .nav-link.active {color: #2470dc;}.sidebar .nav-link:hover .feather,.sidebar .nav-link.active .feather {color: inherit;}.sidebar-heading {font-size: .75rem;text-transform: uppercase;}/** Navbar*/.navbar-brand {padding-top: .75rem;padding-bottom: .75rem;font-size: 1rem;background-color: rgba(0, 0, 0, .25);box-shadow: inset -1px 0 0 rgba(0, 0, 0, .25);}.navbar .navbar-toggler {top: .25rem;right: 1rem;}.navbar .form-control {padding: .75rem 1rem;border-width: 0;border-radius: 0;}.form-control-dark {color: #fff;background-color: rgba(255, 255, 255, .1);border-color: rgba(255, 255, 255, .1);}.form-control-dark:focus {border-color: transparent;box-shadow: 0 0 0 3px rgba(255, 255, 255, .25);}th{font-weight: normal;}</style>' + PAGE_PAGE_CSS + '</head><body><header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow"><a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">Data dash</a><button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button><!--<input class="form-control form-control-dark w-100" type="text" placeholder="Search" aria-label="Search">--><div class="navbar-nav"><div class="nav-item text-nowrap"><a class="nav-link px-3" href="#"></a></div></div></header><div class="container-fluid"><div class="row">'
     DEFAULT_PAGE_HEADER += DEFAULT_PAGE_MENU 
     DEFAULT_PAGE_HEADER += '<main class="col-md-9 ms-sm-auto col-lg-10 px-md-4"><div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom"><h1 class="h2">' + TITLE + '</h1></div>'
