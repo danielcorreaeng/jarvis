@@ -4,6 +4,11 @@ import unittest
 import configparser
 from time import sleep
 import subprocess
+import requests
+import datetime
+import json
+import getpass
+import socket
 
 from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer, ListTrainer
@@ -15,6 +20,8 @@ from flask_cors import CORS
 globalParameter = {}
 globalParameter['LocalPort'] = 8805
 globalParameter['LocalIp'] = "0.0.0.0"
+globalParameter['LocalUsername'] = getpass.getuser().replace(' ','_')
+globalParameter['LocalHostname'] = socket.gethostname().replace(' ','_')
 globalParameter['MAINWEBSERVER'] = True
 globalParameter['PathDB'] = "db.sqlite3"
 globalParameter['maximum_similarity_threshold'] = 0.80
@@ -29,7 +36,11 @@ globalParameter['configFile'] = "config.ini"
 globalParameter['allowedexternalrecordbase'] = ""
 globalParameter['flaskstatic_folder'] = 'External'
 
-#chatbot jarvis updated Apr 03rd, 2023 - https://github.com/danielcorreaeng/jarvis
+globalParameter['TriggerTags'] = '[img],[file],[link],[raw],[jsonnote],[jsonlink]'
+globalParameter['TriggerTagsList'] = []
+globalParameter['BotIp4Learn'] = None
+
+#chatbot jarvis updated Fev 18, 2024 - https://github.com/danielcorreaeng/jarvis
 
 app = Flask(__name__, static_url_path="/" + globalParameter['flaskstatic_folder'], static_folder=globalParameter['flaskstatic_folder'])
 CORS(app)
@@ -52,7 +63,29 @@ def Run(command, parameters=None, wait=False):
         proc.communicate()
 
 def RunJarvis(tags):
-	Run(globalParameter['PathExecutable'] + ' ' + globalParameter['PathJarvis'] + ' ' + tags, None, False)  
+    command = str(globalParameter['PathExecutable']) + ' ' + str(globalParameter['PathJarvis']) + ' ' + tags
+    Run(command, None, False)  
+    print(command)
+
+def ChatBotExternal(message, BotIp):
+    result = None
+    #try:
+    request = requests.get('http://' + BotIp)
+    if request.status_code == 200:
+        localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
+        data = {'ask' : message , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : None , 'time' : localTime , 'status' : 'start'}
+
+        url = "http://" + BotIp + "/botresponse"
+        headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+        r = requests.post(url, data=json.dumps(data), headers=headers)
+        result = r.text
+    else:
+        result = None
+    #except:
+    #    result = None
+    #    pass
+
+    return result
 
 class MyChatBot():
     def __init__(self):
@@ -100,9 +133,12 @@ class MyChatBot():
             trainer.train("chatterbot.corpus.portuguese")
             print('training4memory corpus.portuguese')
 
-    def response(self, ask):
+    def responseTriggerTags(self, ask):
+
+        print(ask)
         target = None
         flag = ''
+        tags = ''
 
         if(str(ask).lower().find('[img]') >= 0):
             target = '[img]'
@@ -127,8 +163,6 @@ class MyChatBot():
             tags = ask.split('[base|tags]')[1]
             target = ask.split('[base|tags]')[0].replace(target,'')
             target = target[1:-1].replace(' ','_')
-            #print(tags)
-            #print(target)
             cmd = 'bookmark -base=services -u ' + str(globalParameter['allowedexternalrecordbase']) + str(tags) + " " + str(flag) + " " + str(target)
             print(cmd)
             RunJarvis(cmd)
@@ -137,15 +171,28 @@ class MyChatBot():
 
             if(str(globalParameter['allowedexternalrecordbase']) != ""):
                 result = result + " (recorded in base " + str(globalParameter['allowedexternalrecordbase']) + ")"
-
+            
             return result
+
+    def response(self, ask):
+
+        for triggerTags in globalParameter['TriggerTagsList']:
+            if(str(ask).lower().find(triggerTags) >= 0):
+                result = self.responseTriggerTags(ask)
+                return result
 
         if(str(ask).lower().find('[learn]') >= 0 and str(ask).lower().find('[answer]') >= 0):
             answer = ask.split('[answer]')[1]
             ask = ask.split('[answer]')[0].replace('[learn]','')            
-            self.training4conversation([ask, str(answer)])          
+            self.training4conversation([ask, str(answer)])      
 
         res = self.chatbot.get_response(ask)
+
+        if(globalParameter['BotIp4Learn']!=None and str(res) == str(globalParameter['unanswered_answer'])):  
+            answer = ChatBotExternal(ask, globalParameter['BotIp4Learn'])
+            if(res != None):
+                self.training4conversation([ask, str(answer)])              
+                res = self.chatbot.get_response(ask)
 
         return res            
 
@@ -172,7 +219,7 @@ def ChatBotLoop(Learn = False):
 
         print(res)
 
-        if(Learn==True and str(res) == "Não entendi"):
+        if(Learn==True and str(res) == str(globalParameter['unanswered_answer'])):
             print("Deseja que eu aprenda?")
             res = input(">")
             if(res == 'sim'):
@@ -200,7 +247,7 @@ def botresponse():
             if(response == globalParameter['unanswered_answer']):
                 ask = data['ask']
                 response = BotResponse(ask)  
-                print(['without tag response', ask, response])             
+                #print(['without tag response', ask, response])             
         else:
             ask = data['ask']
             response = BotResponse(ask)     
@@ -212,7 +259,7 @@ def botresponse():
                 return response
 
         response = response.split('[')[0]
-        print(['final', ask, response])
+        print(['final ', ask, response])
 
         #ask = str(data[0])
         #print(ask)
@@ -278,6 +325,8 @@ def Main():
     global globalParameter
 
     GetCorrectPath()
+
+    globalParameter['TriggerTagsList'] = str(globalParameter['TriggerTags']).split(',')
 
     try:
         if(globalParameter['MAINWEBSERVER'] == True):
