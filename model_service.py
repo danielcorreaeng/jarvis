@@ -95,6 +95,8 @@ def Main():
 
     try:
         if(globalParameter['MAINWEBSERVER'] == True):
+            #rl = RemoteLog()
+            #rl.CheckRestAPIThread(command="tags -base=xxxxxxx", host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'])            
             #app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'], ssl_context='adhoc') 
             app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort']) 
         pass
