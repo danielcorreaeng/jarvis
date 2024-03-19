@@ -1,13 +1,43 @@
-import os
-import socket
-import threading
-import time
 
+from glob import glob
+import time
+import json
+import sys,os
+import subprocess
+import socket
+import argparse
+import unittest
+import io
+import operator
+from jarvis_utils import *
+import threading
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
 
+from flask import Flask, redirect, url_for, request, render_template
+from flask_cors import CORS
+
+globalParameter['LocalPort'] = 8815
+
+globalParameter['INPUT_DATA_OFF'] = False
+globalParameter['OUTPUT_DATA_OFF'] = False
+globalParameter['MAINLOOP_CONTROLLER'] = False
+globalParameter['MAINWEBSERVER'] = True
+globalParameter['PROCESS_JARVIS'] = None
+
+globalParameter['URLTargetChatGpt'] = r"https://chat.openai.com"
+globalParameter['chrome_driver_path'] = r"C:\ChromeDriver\chromedriver-win64\chromedriver.exe"
+globalParameter['chrome_path'] = r'"C:\ChromeDriver\chrome-win64\chrome.exe"'
+globalParameter['wait4auth'] = 5
+globalParameter['timeResponse'] = 10
+globalParameter['removeText'] = "ChatGPT\n"
+
+app = Flask(__name__)
+CORS(app)
+
+#suitability of 
 #https://github.com/Michelangelo27/chatgpt_selenium_automation
 class ChatGPTAutomation:
 
@@ -25,7 +55,7 @@ class ChatGPTAutomation:
         self.chrome_path = chrome_path
         self.chrome_driver_path = chrome_driver_path
 
-        url = r"https://chat.openai.com"
+        url = globalParameter['URLTargetChatGpt']
         free_port = self.find_available_port()
         self.launch_chrome_with_remote_debugging(free_port, url)
         self.wait_for_human_verification()
@@ -64,13 +94,13 @@ class ChatGPTAutomation:
         return driver
 
     def send_prompt_to_chatgpt(self, prompt):
-        """ Sends a message to ChatGPT and waits for 20 seconds for the response """
+        """ Sends a message to ChatGPT and waits for 10 seconds for the response """
 
         input_box = self.driver.find_element(by=By.XPATH, value='//textarea[contains(@id, "prompt-textarea")]')
         self.driver.execute_script(f"arguments[0].value = '{prompt}';", input_box)
         input_box.send_keys(Keys.RETURN)
         input_box.submit()
-        time.sleep(20)
+        time.sleep(globalParameter['timeResponse'])
 
     def return_chatgpt_conversation(self):
         """
@@ -110,20 +140,8 @@ class ChatGPTAutomation:
 
     @staticmethod
     def wait_for_human_verification():
-        print("You need to manually complete the log-in or the human verification if required.")
-
-        while True:
-            user_input = input(
-                "Enter 'y' if you have completed the log-in or the human verification, or 'n' to check again: ").lower()
-
-            if user_input == 'y':
-                print("Continuing with the automation process...")
-                break
-            elif user_input == 'n':
-                print("Waiting for you to complete the human verification...")
-                time.sleep(5)  # You can adjust the waiting time as needed
-            else:
-                print("Invalid input. Please enter 'y' or 'n'.")
+        #change for automatization - need improve
+        time.sleep(globalParameter['wait4auth'])
 
     def quit(self):
         """ Closes the browser and terminates the WebDriver session."""
@@ -131,30 +149,156 @@ class ChatGPTAutomation:
         self.driver.close()
         self.driver.quit()
 
-from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
-driver = webdriver.Chrome(ChromeDriverManager().install())
+class TestCases_Local(TestCases):
+    def test_dump(self):
+        check = True
+        self.assertTrue(check)    
 
-# Define the path where the chrome driver is installed on your computer
-chrome_driver_path = r"C:\web-dani\chromedriver.exe"
+def LoadVarsIni2(config,sections):
+    global globalParameter
 
-# the sintax r'"..."' is required because the space in "Program Files" in the chrome path
-chrome_path = r'"C:\Program Files\Google\Chrome\Application\chrome.exe"'
+    if('CriticalServices' in sections):
+        for key in config['CriticalServices']:  
+            print(config['CriticalServices'][key])
 
-# Create an instance
-chatgpt = ChatGPTAutomation(chrome_path, chrome_driver_path)
+def CorrectLocalFunctions():
+    globalsub.subs(LoadVarsIni, LoadVarsIni2)
+    pass
 
-# Define a prompt and send it to chatgpt
-prompt = "What are the benefits of exercise?"
-chatgpt.send_prompt_to_chatgpt(prompt)
+def description():
+    return str(Main.__doc__) + " | ip server : " +  str(globalParameter['LocalIp']) + ":" + str(globalParameter['LocalPort'])
 
-# Retrieve the last response from ChatGPT
-response = chatgpt.return_last_response()
-print(response)
+@app.route('/')
+def index():
+    return description()
 
-# Save the conversation to a text file
-file_name = "conversation.txt"
-chatgpt.save_conversation(file_name)
 
-# Close the browser and terminate the WebDriver session
-chatgpt.quit()
+@app.route('/botresponse',methods = ['POST', 'GET'])
+def botresponse():
+    if request.method == 'POST':
+        data = request.get_json(force=True)  
+        ask = data['ask']
+        response = BotResponse(ask)
+        return response
+    else:
+        ask = request.args.get('ask')
+        return BotResponse(ask)
+
+def ChatBotLoop():    
+    chatgpt = ChatGPTAutomation(globalParameter['chrome_path'], globalParameter['chrome_driver_path'])
+    loop = True    
+    
+    while(loop):
+        ask = input(">")
+        
+        if(ask == None):
+            print('...')
+            continue
+
+        chatgpt.send_prompt_to_chatgpt(ask)
+        res = str(chatgpt.return_last_response()).replace(globalParameter['removeText'],"",1)
+
+        print(res)
+
+        if(ask == 'tchau'):
+            loop = False
+            chatgpt.quit()
+            break
+    pass 
+
+def BotResponse(ask):
+    res = None
+    try:
+        chatgpt = ChatGPTAutomation(globalParameter['chrome_path'], globalParameter['chrome_driver_path'])
+        ask = ask.replace('_', ' ')
+        chatgpt.send_prompt_to_chatgpt(ask)
+        res = str(chatgpt.return_last_response()).replace(globalParameter['removeText'],"",1)
+        chatgpt.quit()
+    except:
+        pass
+    return str(res)
+
+def Main():
+    """Integraca"""    
+
+    global globalParameter
+
+    CorrectLocalFunctions()
+    GetCorrectPath()
+
+    try:
+        if(globalParameter['LocalIp'] == None):        
+            globalParameter['LocalIp'] = GetCorrectIp(socket.gethostbyname_ex(socket.gethostname()))
+    except:
+        print('error ip')
+        
+    try:
+        t = Thread(target=mainThread)
+        t.start()  
+    except:
+        print('error mainThread')
+
+    try:
+        if(globalParameter['MAINWEBSERVER'] == True):
+            rl = RemoteLog()
+            rl.CheckRestAPIThread(command="chatgpt -base=integration", host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'])            
+            #app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'], ssl_context='adhoc') 
+            app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort']) 
+        pass
+    except:
+        print('error webservice')
+    
+if __name__ == '__main__':   
+    parser = argparse.ArgumentParser(description=Main.__doc__)
+    parser.add_argument('-d','--description', help='Description of program', action='store_true')
+    parser.add_argument('-u','--tests', help='Execute tests', action='store_true')
+    parser.add_argument('-p','--port', help='Service running in target port')
+    parser.add_argument('-i','--ip', help='Service running in target ip')
+    parser.add_argument('-c','--config', help='Config.ini file')  
+    parser.add_argument('-a','--hold4auth', help='Wait 40 seconds for authentication', action='store_true')      
+    parser.add_argument('-r','--bootresponse', help='Chatbot response input', action='store_true')    
+    parser.add_argument('-l','--bootloop', help='Chatbot in loop', action='store_true')    
+    
+    args, unknown = parser.parse_known_args()
+    args = vars(args)
+    dialog = ' '.join(unknown)
+    
+    if args['description'] == True:
+        print(Main.__doc__)
+        sys.exit()
+
+    if args['tests'] == True:       
+        CorrectLocalFunctions()
+        suite = unittest.TestSuite()
+        suite.addTest(TestCases_Local("test_webserver_fifo")) 
+        suite.addTest(TestCases_Local("test_dump")) 
+        runner = unittest.TextTestRunner()
+        runner.run(suite)   
+        globalParameter['MAINLOOP_CONTROLLER'] = False                     
+        sys.exit()    
+
+    if args['port'] is not None:
+        print('TargetPort: ' + args['port'])
+        globalParameter['LocalPort'] = args['port']  
+
+    if args['ip'] is not None:
+        print('TargetIP: ' + args['ip'])
+        globalParameter['LocalIp'] = args['ip']       
+
+    if args['config'] is not None:
+        print('Config.ini: ' + args['config'])
+        globalParameter['configFile'] = args['config']                
+
+    if args['hold4auth'] == True:       
+        globalParameter['wait4auth'] = 40
+
+    if args['bootresponse'] == True:       
+        print(BotResponse(dialog))
+        sys.exit()   
+
+    if args['bootloop'] == True:       
+        ChatBotLoop()
+        sys.exit()           
+
+    param = ' '.join(unknown)
+    Main()

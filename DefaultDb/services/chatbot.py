@@ -40,7 +40,7 @@ globalParameter['TriggerTags'] = '[img],[file],[link],[raw],[jsonnote],[jsonlink
 globalParameter['TriggerTagsList'] = []
 globalParameter['BotIp4Learn'] = None
 
-#chatbot jarvis updated Feb 18, 2024 - https://github.com/danielcorreaeng/jarvis
+#chatbot jarvis updated Mar 18, 2024 - https://github.com/danielcorreaeng/jarvis
 
 app = Flask(__name__, static_url_path="/" + globalParameter['flaskstatic_folder'], static_folder=globalParameter['flaskstatic_folder'])
 CORS(app)
@@ -79,6 +79,9 @@ def ChatBotExternal(message, BotIp):
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
             r = requests.post(url, data=json.dumps(data), headers=headers)
             result = r.text
+
+            if(result == "None"):
+                result = None                
         else:
             result = None
     except:
