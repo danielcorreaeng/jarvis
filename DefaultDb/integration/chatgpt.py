@@ -19,7 +19,7 @@ from selenium.webdriver.chrome.service import Service
 from flask import Flask, redirect, url_for, request, render_template
 from flask_cors import CORS
 
-globalParameter['LocalPort'] = 8815
+globalParameter['LocalPort'] = 8822
 
 globalParameter['INPUT_DATA_OFF'] = False
 globalParameter['OUTPUT_DATA_OFF'] = False
@@ -30,7 +30,7 @@ globalParameter['PROCESS_JARVIS'] = None
 globalParameter['URLTargetChatGpt'] = r"https://chat.openai.com"
 globalParameter['chrome_driver_path'] = r"C:\ChromeDriver\chromedriver-win64\chromedriver.exe"
 globalParameter['chrome_path'] = r'"C:\ChromeDriver\chrome-win64\chrome.exe"'
-globalParameter['wait4auth'] = 5
+globalParameter['wait4auth'] = 3
 globalParameter['timeResponse'] = 10
 globalParameter['removeText'] = "ChatGPT\n"
 
@@ -39,6 +39,10 @@ CORS(app)
 
 #suitability of 
 #https://github.com/Michelangelo27/chatgpt_selenium_automation
+
+#downloads - chrome.exe and chromedriver.exe
+#https://googlechromelabs.github.io/chrome-for-testing/
+
 class ChatGPTAutomation:
 
     def __init__(self, chrome_path, chrome_driver_path):
@@ -109,29 +113,6 @@ class ChatGPTAutomation:
 
         return self.driver.find_elements(by=By.CSS_SELECTOR, value='div.text-base')
 
-    def save_conversation(self, file_name):
-        """
-        It saves the full chatgpt conversation of the tab open in chrome into a text file, with the following format:
-            prompt: ...
-            response: ...
-            delimiter
-            prompt: ...
-            response: ...
-
-        :param file_name: name of the file where you want to save
-        """
-
-        directory_name = "conversations"
-        if not os.path.exists(directory_name):
-            os.makedirs(directory_name)
-
-        delimiter = "|^_^|"
-        chatgpt_conversation = self.return_chatgpt_conversation()
-        with open(os.path.join(directory_name, file_name), "a") as file:
-            for i in range(0, len(chatgpt_conversation), 2):
-                file.write(
-                    f"prompt: {chatgpt_conversation[i].text}\nresponse: {chatgpt_conversation[i + 1].text}\n\n{delimiter}\n\n")
-
     def return_last_response(self):
         """ :return: the text of the last chatgpt response """
 
@@ -187,7 +168,6 @@ def botresponse():
 def ChatBotLoop():    
     chatgpt = ChatGPTAutomation(globalParameter['chrome_path'], globalParameter['chrome_driver_path'])
     loop = True    
-    
     while(loop):
         ask = input(">")
         
@@ -216,10 +196,11 @@ def BotResponse(ask):
         chatgpt.quit()
     except:
         pass
+    print(res)
     return str(res)
 
 def Main():
-    """Integraca"""    
+    """Integration with gptchat for selemium. Same model of chatbot, it can be used for BotIp4Learn method. Use hold4auth for make auth in chatgpt chat."""    
 
     global globalParameter
 
