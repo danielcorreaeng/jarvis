@@ -30,7 +30,7 @@ globalParameter['PROCESS_JARVIS'] = None
 globalParameter['URLTargetChatGpt'] = r"https://chat.openai.com"
 globalParameter['chrome_driver_path'] = r"C:\ChromeDriver\chromedriver-win64\chromedriver.exe"
 globalParameter['chrome_path'] = r'"C:\ChromeDriver\chrome-win64\chrome.exe"'
-globalParameter['wait4auth'] = 3
+globalParameter['wait4auth'] = 5
 globalParameter['timeResponse'] = 10
 globalParameter['removeText'] = "ChatGPT\n"
 
