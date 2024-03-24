@@ -30,8 +30,8 @@ globalParameter['PROCESS_JARVIS'] = None
 globalParameter['URLTargetChatGpt'] = r"https://chat.openai.com"
 globalParameter['chrome_driver_path'] = r"C:\ChromeDriver\chromedriver-win64\chromedriver.exe"
 globalParameter['chrome_path'] = r'"C:\ChromeDriver\chrome-win64\chrome.exe"'
-globalParameter['wait4auth'] = 5
-globalParameter['timeResponse'] = 10
+globalParameter['wait4auth'] = 7
+globalParameter['maxTimeResponse'] = 10
 globalParameter['removeText'] = "ChatGPT\n"
 
 app = Flask(__name__)
@@ -104,7 +104,6 @@ class ChatGPTAutomation:
         self.driver.execute_script(f"arguments[0].value = '{prompt}';", input_box)
         input_box.send_keys(Keys.RETURN)
         input_box.submit()
-        time.sleep(globalParameter['timeResponse'])
 
     def return_chatgpt_conversation(self):
         """
@@ -116,8 +115,24 @@ class ChatGPTAutomation:
     def return_last_response(self):
         """ :return: the text of the last chatgpt response """
 
-        response_elements = self.driver.find_elements(by=By.CSS_SELECTOR, value='div.text-base')
-        return response_elements[-1].text
+        response = "response"
+        lastResponse = "waiting same response"
+        start = time.time()
+        
+        while(lastResponse != response):
+            lastResponse = response
+            time.sleep(1)
+            response_elements = self.driver.find_elements(by=By.CSS_SELECTOR, value='div.text-base')
+            response = response_elements[-1].text
+            print(response)
+            now = time.time()
+            elapsed = int(now - start)
+
+            print(elapsed)
+            if(elapsed>int(globalParameter['maxTimeResponse'])):
+                break
+
+        return response
 
     @staticmethod
     def wait_for_human_verification():
