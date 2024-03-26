@@ -30,6 +30,7 @@ globalParameter['AllowedUser'] = None
 globalParameter['configFile'] = "config.ini"
 globalParameter['TypeTagPhotoOrDocs'] = "[raw]" #"[file]" 
 globalParameter['TypeTagVideo'] = "[raw]"
+globalParameter['TypeTagLink'] = "[jsonlinkfile]" #"[jsonlink]" 
 
 globalParameter['PINTEREST_IMAGECLASS'] = 'hCL kVc L4E MIw'
 
@@ -225,6 +226,10 @@ def link(update: Update, context: CallbackContext) -> int:
 
             update.message.reply_text('Gorgeous! Now, send me <base> <tags> for i record the photo, or send /skip if you don\'t want to.')
             return TAGS
+    else:
+            update.message.reply_text('Gorgeous! Now, send me <base> <tags> for i record the link, or send /skip if you don\'t want to.')
+            context.user_data['fileids'].append([str(link), "link"])
+            return TAGS       
 
     return DEFAULT
 
@@ -234,6 +239,7 @@ def define_base_tag(update: Update, context: CallbackContext) -> int:
     print('user:' + update.message.text)
 
     cmd = update.message.text
+    res = "..."
     if 'fileids' in context.user_data:
         for fileid, _type in context.user_data['fileids']:
             print([fileid,_type])
@@ -241,6 +247,8 @@ def define_base_tag(update: Update, context: CallbackContext) -> int:
                 cmd = globalParameter['TypeTagPhotoOrDocs'] + " " + fileid + " [base|tags] " + update.message.text
             elif(_type == "video"):
                 cmd = globalParameter['TypeTagVideo'] + " " + fileid + " [base|tags] " + update.message.text
+            elif(_type == "link"):
+                cmd = globalParameter['TypeTagLink'] + " " + fileid + " [base|tags] " + update.message.text                
             else:
                 continue
             print(cmd)
