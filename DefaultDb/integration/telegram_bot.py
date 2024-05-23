@@ -20,6 +20,10 @@ globalParameter = {}
 globalParameter['BotIp'] = '127.0.0.1:8805'
 globalParameter['LocalUsername'] = getpass.getuser().replace(' ','_')
 globalParameter['LocalHostname'] = socket.gethostname().replace(' ','_')
+globalParameter['LocalIp'] = socket.gethostbyname(socket.gethostname())
+globalParameter['PublicIp'] = ''
+globalParameter['PreferredNetworks'] = ['192.168.15.']
+globalParameter['BlockedNetworks'] = ['192.168.56.', '192.168.100.', '127.0.1.', '127.0.0.']
 globalParameter['LastCommand'] = ''
 globalParameter['PathLocal'] = os.path.join("C:\\", "Jarvis")
 globalParameter['PathJarvis'] = os.path.join("C:\\", "Jarvis", "Jarvis.py")
@@ -66,7 +70,6 @@ def ChatBot(message):
     
     return result
 
-
 def GetCorrectPath():
     global globalParameter
 
@@ -109,6 +112,42 @@ def GetCorrectPath():
                         globalParameter['BotIp']=config['Parameters'][key]  
                         print('BotIp=' + globalParameter['BotIp'])                 
 
+def GetCorrectIp(LocalIps):
+    LocalIp = None
+    
+    for myip in LocalIps[2]:
+        for iptest in globalParameter['PreferredNetworks']:
+            if(myip.find(iptest)>=0):
+                LocalIp = myip
+                break
+    
+    if(LocalIp == None):
+        ipblock = False
+        for myip in LocalIps[2]:
+            for iptest in globalParameter['BlockedNetworks']:
+                if(myip.find(iptest)>=0):
+                    ipblock = True
+                    break
+                
+            if(ipblock == False):
+                LocalIp = myip
+                break
+    
+    if(LocalIp == None):
+        LocalIp = '0.0.0.0'
+    
+    return LocalIp
+
+def GetPublicIp():
+    ippublic = ''
+    try:
+        ippublic = requests.get('https://api.ipify.org').text
+        ippublic = str(ippublic)
+    except:
+        pass
+        
+    return ippublic
+
 def start(update: Update, context: CallbackContext) -> int:
     """Send a message when the command /start is issued."""
     user = update.effective_user
@@ -127,6 +166,12 @@ def echo(update: Update, context: CallbackContext) -> None:
     print(update.message.text)
     update.message.reply_text(update.message.text)
 
+def ip(update: Update, context: CallbackContext) -> int:
+    """Send IP."""
+    ip = "Local ip : " + str(globalParameter['LocalIp'] ) + " \nPublic ip : " + str(globalParameter['PublicIp']) 
+    print(ip)
+    update.message.reply_text(ip)    
+    return DEFAULT    
 
 def bot(update: Update, context: CallbackContext) -> int:
     """Bot response message."""
@@ -304,7 +349,7 @@ def Main():
                             MessageHandler(Filters.text & ~Filters.command, bot, Filters.user(username=globalParameter['AllowedUser']))],
                     TAGS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag, Filters.user(username=globalParameter['AllowedUser'])), CommandHandler('skip', cancel, Filters.user(username=globalParameter['AllowedUser']))],
                 },
-                fallbacks=[CommandHandler('cancel', cancel, Filters.user(username=globalParameter['AllowedUser'])), CommandHandler('skip', cancel, Filters.user(username=globalParameter['AllowedUser']))],
+                fallbacks=[CommandHandler('cancel', cancel, Filters.user(username=globalParameter['AllowedUser'])), CommandHandler('skip', cancel, Filters.user(username=globalParameter['AllowedUser'])), CommandHandler('ip', ip, Filters.user(username=globalParameter['AllowedUser']))],
             )
 
     dispatcher.add_handler(conv_handler)    
@@ -358,5 +403,7 @@ if __name__ == '__main__':
     param = ' '.join(unknown)
 
     GetCorrectPath()
+    globalParameter['LocalIp'] = GetCorrectIp(socket.gethostbyname_ex(socket.gethostname()))
+    globalParameter['PublicIp'] = GetPublicIp()
 
     Main()

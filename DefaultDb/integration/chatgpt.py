@@ -31,7 +31,7 @@ globalParameter['URLTargetChatGpt'] = r"https://chat.openai.com"
 globalParameter['chrome_driver_path'] = r"C:\ChromeDriver\chromedriver-win64\chromedriver.exe"
 globalParameter['chrome_path'] = r'"C:\ChromeDriver\chrome-win64\chrome.exe"'
 globalParameter['wait4auth'] = 7
-globalParameter['maxTimeResponse'] = 17
+globalParameter['maxTimeResponse'] = 60
 globalParameter['removeText'] = "ChatGPT\n"
 
 app = Flask(__name__)
