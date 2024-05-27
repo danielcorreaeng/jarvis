@@ -36,11 +36,11 @@ globalParameter['configFile'] = "config.ini"
 globalParameter['allowedexternalrecordbase'] = ""
 globalParameter['flaskstatic_folder'] = 'External'
 
-globalParameter['TriggerTags'] = '[img],[file],[link],[raw],[jsonnote],[jsonlink]'
+globalParameter['TriggerTags'] = '[img],[file],[link],[raw],[jsonnote],[jsonlink],[jsonlinkfile],[jsonnotefile]'
 globalParameter['TriggerTagsList'] = []
 globalParameter['BotIp4Learn'] = None
 
-#chatbot jarvis updated Feb 18, 2024 - https://github.com/danielcorreaeng/jarvis
+#chatbot jarvis updated Mar 25, 2024 - https://github.com/danielcorreaeng/jarvis
 
 app = Flask(__name__, static_url_path="/" + globalParameter['flaskstatic_folder'], static_folder=globalParameter['flaskstatic_folder'])
 CORS(app)
@@ -79,6 +79,10 @@ def ChatBotExternal(message, BotIp):
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
             r = requests.post(url, data=json.dumps(data), headers=headers)
             result = r.text
+            print(result)
+
+            if(result == "None"):
+                result = None                
         else:
             result = None
     except:
@@ -158,6 +162,12 @@ class MyChatBot():
         elif(str(ask).lower().find('[jsonlink]') >= 0):
             target = '[jsonlink]'                                 
             flag = '-l'
+        elif(str(ask).lower().find('[jsonlinkfile]') >= 0):
+            target = '[jsonlinkfile]'                                 
+            flag = '-j'     
+        elif(str(ask).lower().find('[jsonnotefile]') >= 0):
+            target = '[jsonnotefile]'                                 
+            flag = '-t'                        
 
         if(target != None and str(ask).lower().find('[base|tags]') >= 0):
             tags = ask.split('[base|tags]')[1]
@@ -190,10 +200,10 @@ class MyChatBot():
 
         if(globalParameter['BotIp4Learn']!=None and str(res) == str(globalParameter['unanswered_answer'])):  
             answer = ChatBotExternal(ask, globalParameter['BotIp4Learn'])
-            if(res != None):
+            if(answer != None):
                 self.training4conversation([ask, str(answer)])              
                 res = self.chatbot.get_response(ask)
-
+                
         return res            
 
 def BotResponse(ask):

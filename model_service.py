@@ -73,6 +73,13 @@ def CorrectLocalFunctions():
     globalsub.subs(mainThread, mainThread2)    
     pass
 
+def description():
+    return str(Main.__doc__) + " | ip server : " +  str(globalParameter['LocalIp']) + ":" + str(globalParameter['LocalPort'])
+
+@app.route('/')
+def index():
+    return description()
+
 def Main():
     """no describe"""    
 

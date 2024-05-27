@@ -99,7 +99,8 @@ def makeTable():
                     print(data)               
 
                 #form = "<form  action='" + str(request.base_url) + "/response' method='post'>"
-                form = "<form action='" + str(request.url_root) + "update' method='post'>"
+                #form = "<form action='" + str(request.url_root) + "update' method='post'>"
+                form = "<form>"
                 form += "<input type='hidden' name='id_name' value='"+ str(name) + "'>"
                 
                 for key in data:

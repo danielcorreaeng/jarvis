@@ -52,7 +52,7 @@ def GetLocalFile():
     return localFile
 
 def Main(): 
-    '''Create tag that open page with link or save file from link. Parameters : <base> <tag 0> <tag1> ... <link>'''
+    '''Create tag that open page with link or save file (pdf, doc, jpg) from link. Parameters : <base> <tag 0> <tag1> ... <link>'''
     pass
 	
 if __name__ == '__main__':
@@ -64,6 +64,8 @@ if __name__ == '__main__':
     parser.add_argument('-l','--jsonlink', help='Create a json file with the inserted link', action='store_true')
     parser.add_argument('-n','--jsonnote', help='Create a json file with the inserted note', action='store_true')
     parser.add_argument('-f','--keepfile', help='Create a file without database (base = folder, tag = name)', action='store_true')    
+    parser.add_argument('-j','--jsonlinkfile', help='Create a json with link without database (base = folder, tag = name)', action='store_true')   
+    parser.add_argument('-t','--jsonnotefile', help='Create a json with note without database (base = folder, tag = name)', action='store_true')
     
     args, unknown = parser.parse_known_args()
     args = vars(args)
@@ -85,6 +87,7 @@ if __name__ == '__main__':
     base = unknown[0]
     tags = unknown[1:-1]
     link = unknown[-1]
+    keepfile = False
 
     tags = ' '.join(tags)
     if(id_unique == True):
@@ -93,7 +96,7 @@ if __name__ == '__main__':
     file = GetLocalFile()
     extension = os.path.splitext(link)[1]
 
-    if((args['jsonlink'] == False and args['keepfile'] == False and args['jsonnote'] == False) and (extension == '.jpg' or extension == '.jpeg' or extension == '.png' or extension == '.json' or extension == '.doc' or extension == '.docx' or extension == '.pdf' or extension == '.xls' or extension == '.xlsx')):
+    if((args['jsonlink'] == False and args['keepfile'] == False and args['jsonnote'] == False and args['jsonlinkfile'] == False and args['jsonnotefile'] == False) and (extension == '.jpg' or extension == '.jpeg' or extension == '.png' or extension == '.json' or extension == '.doc' or extension == '.docx' or extension == '.pdf' or extension == '.xls' or extension == '.xlsx')):
         file = GetLocalFileWithoutExtension() + extension
         f = open(file,'wb')
         response = requests.get(link)
@@ -102,6 +105,25 @@ if __name__ == '__main__':
         time.sleep(globalParameter['TimeRecordFile'])
         cmd = 'read ' + file + ' ' + tags + ' ' + '-base=' + base
         RunJarvis(cmd)  
+    elif(args['jsonlinkfile'] == True or args['jsonnotefile'] == True):
+
+        localpath = os.path.join(globalParameter['PathDB_All'], base)
+
+        if(os.path.exists(localpath) == False):
+            os.mkdir(localpath)
+
+        data = { 'link' :  link }
+        if args['jsonnotefile'] == True:
+            link = link.replace("_", " ")
+            data = { 'note' :  link }
+
+        file = os.path.join(localpath, tags + '.json')
+        print(file)
+        f = open(file,'w')
+        json.dump(data, f, ensure_ascii=False, indent=4)
+        f.close()
+        keepfile = True
+
     elif(args['keepfile'] == True):
 
         localpath = os.path.join(globalParameter['PathDB_All'], base)
@@ -113,12 +135,14 @@ if __name__ == '__main__':
         f = open(file,'wb')
         response = requests.get(link)
         f.write(response.content)
-        f.close()
+        f.close()    
+        keepfile = True
+            
     else:   
         jarvislink = True
 
         if args['jsonlink'] == True or args['jsonnote'] == True:
-            file = file + '.json'
+            file = file + ".json"
 
             data = { 'link' :  link }
             if args['jsonnote'] == True:
@@ -150,6 +174,6 @@ if __name__ == '__main__':
         RunJarvis(cmd)
 
     time.sleep(globalParameter['TimeRecordFile'])
-    if(os.path.isfile(file)==True and args['keepfile'] == False):
+    if(os.path.isfile(file)==True and keepfile == False):
         os.remove(file)
         pass
