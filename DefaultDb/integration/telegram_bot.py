@@ -10,25 +10,23 @@ import socket
 import requests
 import bs4
 import requests
+from jarvis_utils import *
 
 from telegram import Update, ForceReply,ReplyKeyboardRemove
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler
 
 #ref.: https://raw.githubusercontent.com/python-telegram-bot/python-telegram-bot/master/examples/echobot.py
 
-globalParameter = {}
+globalParameter['INPUT_DATA_OFF'] = False
+globalParameter['OUTPUT_DATA_OFF'] = False
+globalParameter['MAINLOOP_CONTROLLER'] = False
+globalParameter['MAINWEBSERVER'] = False
+globalParameter['PROCESS_JARVIS'] = None
+
+globalParameter['LocalPort'] = 8810
 globalParameter['BotIp'] = '127.0.0.1:8805'
-globalParameter['LocalUsername'] = getpass.getuser().replace(' ','_')
-globalParameter['LocalHostname'] = socket.gethostname().replace(' ','_')
-globalParameter['LocalIp'] = socket.gethostbyname(socket.gethostname())
 globalParameter['PublicIp'] = ''
-globalParameter['PreferredNetworks'] = ['192.168.15.']
-globalParameter['BlockedNetworks'] = ['192.168.56.', '192.168.100.', '127.0.1.', '127.0.0.']
 globalParameter['LastCommand'] = ''
-globalParameter['PathLocal'] = os.path.join("C:\\", "Jarvis")
-globalParameter['PathJarvis'] = os.path.join("C:\\", "Jarvis", "Jarvis.py")
-globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'], "Output")
-globalParameter['PathExecutable'] = "python"
 globalParameter['Token'] = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 globalParameter['AllowedUser'] = None
 globalParameter['configFile'] = "config.ini"
@@ -68,85 +66,26 @@ def ChatBot(message):
         result = error
     pass
     
-    return result
+    return result           
 
-def GetCorrectPath():
+def LoadVarsIni2(config,sections):
     global globalParameter
 
-    dir_path = os.path.dirname(os.path.realpath(__file__)) 
-    os.chdir(dir_path)
-    #print(dir_path)      
-
-    ini_file = os.path.join(dir_path, globalParameter['configFile'])
-    #print(ini_file)
-    if(os.path.isfile(ini_file) == False):
-        ini_file = os.path.join(dir_path, '..', globalParameter['configFile'])
-        if(os.path.isfile(ini_file) == False):
-            ini_file = os.path.join(dir_path, '..', '..', globalParameter['configFile'])
-            if(os.path.isfile(ini_file) == False):
-                return
-    #print('Found ini')  
-
-    globalParameter['PathExecutable'] = sys.executable
-    globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'], "Output")
-
-    if(os.path.isfile(ini_file) == True):
-        #print('Found ini')
-        with open(ini_file) as fp:
-            config = configparser.ConfigParser()
-            config.read_file(fp)
-            sections = config.sections()
-            if('Telegram' in sections):
-                #print('Telegram')
-                for key in config['Telegram']:         
-                    if(key.lower()=='token'):
-                        globalParameter['Token'] = config['Telegram'][key]
-                        print('Token Loaded')
-                    if(key.lower()=='alloweduser'):
-                        globalParameter['AllowedUser'] = config['Telegram'][key]
-                        print('AllowedUser=' + globalParameter['AllowedUser'])
-                        
-            if('Parameters' in sections):
-                for key in config['Parameters']:         
-                    if(key.lower()=='botip'):     
-                        globalParameter['BotIp']=config['Parameters'][key]  
-                        print('BotIp=' + globalParameter['BotIp'])                 
-
-def GetCorrectIp(LocalIps):
-    LocalIp = None
-    
-    for myip in LocalIps[2]:
-        for iptest in globalParameter['PreferredNetworks']:
-            if(myip.find(iptest)>=0):
-                LocalIp = myip
-                break
-    
-    if(LocalIp == None):
-        ipblock = False
-        for myip in LocalIps[2]:
-            for iptest in globalParameter['BlockedNetworks']:
-                if(myip.find(iptest)>=0):
-                    ipblock = True
-                    break
+    if('Telegram' in sections):
+        #print('Telegram')
+        for key in config['Telegram']:         
+            if(key.lower()=='token'):
+                globalParameter['Token'] = config['Telegram'][key]
+                print('Token Loaded')
+            if(key.lower()=='alloweduser'):
+                globalParameter['AllowedUser'] = config['Telegram'][key]
+                print('AllowedUser=' + globalParameter['AllowedUser'])
                 
-            if(ipblock == False):
-                LocalIp = myip
-                break
-    
-    if(LocalIp == None):
-        LocalIp = '0.0.0.0'
-    
-    return LocalIp
-
-def GetPublicIp():
-    ippublic = ''
-    try:
-        ippublic = requests.get('https://api.ipify.org').text
-        ippublic = str(ippublic)
-    except:
-        pass
-        
-    return ippublic
+    if('Parameters' in sections):
+        for key in config['Parameters']:         
+            if(key.lower()=='botip'):     
+                globalParameter['BotIp']=config['Parameters'][key]  
+                print('BotIp=' + globalParameter['BotIp'])                
 
 def start(update: Update, context: CallbackContext) -> int:
     """Send a message when the command /start is issued."""
@@ -315,7 +254,20 @@ def cancel(update: Update, context: CallbackContext) -> int:
 
 def Main(): 
     '''Telegram Bot. Configuration in config.ini [Telegram].token and [Telegram].alloweduser=@user'''
+
+    global globalParameter
+
+    globalsub.subs(LoadVarsIni, LoadVarsIni2)
     
+    GetCorrectPath()
+
+    try:        
+        if(globalParameter['LocalIp'] == '0.0.0.0'):
+            globalParameter['LocalIp'] = GetCorrectIp()
+        globalParameter['PublicIp'] = GetPublicIp()
+    except:
+        print('error ip')
+
     # Create the Updater and pass it your bot's token.
     updater = Updater(globalParameter['Token'])
 
@@ -401,9 +353,5 @@ if __name__ == '__main__':
         globalParameter['configFile'] = args['config']  
 
     param = ' '.join(unknown)
-
-    GetCorrectPath()
-    globalParameter['LocalIp'] = GetCorrectIp(socket.gethostbyname_ex(socket.gethostname()))
-    globalParameter['PublicIp'] = GetPublicIp()
 
     Main()
