@@ -107,7 +107,7 @@ def echo(update: Update, context: CallbackContext) -> None:
 
 def ip(update: Update, context: CallbackContext) -> int:
     """Send IP."""
-    ip = "Local ip : " + str(globalParameter['LocalIp'] ) + " \nPublic ip : " + str(globalParameter['PublicIp']) 
+    ip = "Local ip : " + str(globalParameter['LocalIp'] ) # + " \nPublic ip : " + str(globalParameter['PublicIp']) 
     print(ip)
     update.message.reply_text(ip)    
     return DEFAULT    
@@ -291,15 +291,15 @@ def Main():
 
     if(globalParameter['AllowedUser'] != None):
             conv_handler = ConversationHandler(
-                entry_points=[MessageHandler(Filters.text & ~Filters.command, bot, Filters.user(username=globalParameter['AllowedUser'])), CommandHandler('start', start, Filters.user(username=globalParameter['AllowedUser']))],
+                entry_points=[MessageHandler(Filters.text & ~Filters.command & Filters.user(username=globalParameter['AllowedUser']), start), CommandHandler('start', start, Filters.user(username=globalParameter['AllowedUser']))],
                 states={
                     DEFAULT: [
-                            MessageHandler(Filters.photo, photo, Filters.user(username=globalParameter['AllowedUser'])),
-                            MessageHandler(Filters.document, document, Filters.user(username=globalParameter['AllowedUser'])),
-                            MessageHandler(Filters.video, videos, Filters.user(username=globalParameter['AllowedUser'])),
-                            MessageHandler(Filters.entity('url'), link, Filters.user(username=globalParameter['AllowedUser'])),
-                            MessageHandler(Filters.text & ~Filters.command, bot, Filters.user(username=globalParameter['AllowedUser']))],
-                    TAGS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag, Filters.user(username=globalParameter['AllowedUser'])), CommandHandler('skip', cancel, Filters.user(username=globalParameter['AllowedUser']))],
+                            MessageHandler(Filters.photo & Filters.user(username=globalParameter['AllowedUser']), photo),
+                            MessageHandler(Filters.document & Filters.user(username=globalParameter['AllowedUser']), document),
+                            MessageHandler(Filters.video & Filters.user(username=globalParameter['AllowedUser']), videos),
+                            MessageHandler(Filters.entity('url') & Filters.user(username=globalParameter['AllowedUser']), link),
+                            MessageHandler(Filters.text & ~Filters.command & Filters.user(username=globalParameter['AllowedUser']), bot)],
+                    TAGS: [MessageHandler(Filters.text & ~Filters.command & Filters.user(username=globalParameter['AllowedUser']), define_base_tag), CommandHandler('skip', cancel, Filters.user(username=globalParameter['AllowedUser']))],
                 },
                 fallbacks=[CommandHandler('cancel', cancel, Filters.user(username=globalParameter['AllowedUser'])), CommandHandler('skip', cancel, Filters.user(username=globalParameter['AllowedUser'])), CommandHandler('ip', ip, Filters.user(username=globalParameter['AllowedUser']))],
             )
