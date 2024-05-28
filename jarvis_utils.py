@@ -34,9 +34,7 @@ globalParameter['PathExecutable'] = "python"
 globalParameter['configFile'] = "config.ini"
 
 globalParameter['LocalPort'] = 8821
-globalParameter['PreferredNetworks'] = ['192.168.15.','127.0.0.']
-globalParameter['BlockedNetworks'] = ['192.168.56.', '192.168.100.']
-globalParameter['LocalIp'] = socket.gethostbyname(socket.gethostname())
+globalParameter['LocalIp'] = '0.0.0.0'
 globalParameter['LocalUsername'] = getpass.getuser().replace(' ','_')
 globalParameter['LocalHostname'] = socket.gethostname().replace(' ','_')
 globalParameter['PathDB_All'] = os.path.join(globalParameter['PathLocal'], "Db")
@@ -361,10 +359,24 @@ def exampleWebhook():
         OUTPUT_DATA_WEBHOOK.append(data['webhook'])
     return jsonify(data)
 
-def GetCorrectIp(LocalIps):
+
+def Get_ip_addresses(family):
+    for interface, snics in psutil.net_if_addrs().items():
+        for snic in snics:
+            if snic.family == family:
+                yield (interface, snic.address)
+
+globalParameter['PreferredNetworks'] = ['192.168.15.','192.168.1.']
+globalParameter['BlockedNetworks'] = ['192.168.56.', '192.168.100.','127.0.0.']
+def GetCorrectIp():
+    #ipv4s = list(Get_ip_addresses(socket.AF_INET))
+    #ipv6s = list(Get_ip_addresses(socket.AF_INET6))
+    LocalIps = list(Get_ip_addresses(socket.AF_INET))
     LocalIp = None
+    #print(LocalIps)
     
-    for myip in LocalIps[2]:
+    for interface, myip in LocalIps:
+        #print(myip)
         for iptest in globalParameter['PreferredNetworks']:
             if(myip.find(iptest)>=0):
                 LocalIp = myip
@@ -372,7 +384,7 @@ def GetCorrectIp(LocalIps):
     
     if(LocalIp == None):
         ipblock = False
-        for myip in LocalIps[2]:
+        for interface, myip in LocalIps:
             for iptest in globalParameter['BlockedNetworks']:
                 if(myip.find(iptest)>=0):
                     ipblock = True
@@ -386,7 +398,6 @@ def GetCorrectIp(LocalIps):
         LocalIp = '0.0.0.0'
     
     return LocalIp
-
 
 def GetPublicIp():
     ippublic = ''
@@ -615,12 +626,6 @@ def MainTest():
     global globalParameter
     
     GetCorrectPath()
-
-    try:
-        if(globalParameter['LocalIp'] == None):        
-            globalParameter['LocalIp'] = GetCorrectIp(socket.gethostbyname_ex(socket.gethostname()))
-    except:
-        print('error ip')
         
     try:
         t = Thread(target=mainThread)
@@ -638,7 +643,7 @@ def MainTest():
 
 '''
 if __name__ == '__main__':   
-    parser = argparse.ArgumentParser(description=Main.__doc__)
+    parser = argparse.ArgumentParser(description=MainTest.__doc__)
     parser.add_argument('-d','--description', help='Description of program', action='store_true')
     parser.add_argument('-u','--tests', help='Execute tests', action='store_true')
     parser.add_argument('-p','--port', help='Service running in target port')
@@ -648,7 +653,7 @@ if __name__ == '__main__':
     args = vars(args)
     
     if args['description'] == True:
-        print(Main.__doc__)
+        print(MainTest.__doc__)
         sys.exit()
 
     if args['tests'] == True:       
@@ -669,5 +674,5 @@ if __name__ == '__main__':
 
     param = ' '.join(unknown)
 
-    Main()
+    MainTest()
 '''

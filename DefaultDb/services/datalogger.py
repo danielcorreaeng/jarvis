@@ -266,18 +266,13 @@ def Main():
     #globalsub.subs(LoadVarsIni, LoadVarsIni2)
 
     GetCorrectPath()
-    FixVars()
-
-    try:        
-        if(globalParameter['LocalIp'] == None):
-            globalParameter['LocalIp'] = GetCorrectIp(socket.gethostbyname_ex(socket.gethostname()))
-    except:
-        print('error ip')
         
     try:
         if(globalParameter['MAINWEBSERVER'] == True):
+            remoteLogTargetIp = GetCorrectIp()
+            if(globalParameter['LocalIp'] != '0.0.0.0'): remoteLogTargetIp = globalParameter['LocalIp']
             rl = RemoteLog()
-            rl.CheckRestAPIThread(command="datalogger -base=services", host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'])
+            rl.CheckRestAPIThread(command="datalogger -base=services", host = str(remoteLogTargetIp),port=globalParameter['LocalPort'])
             #app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'], ssl_context='adhoc') 
             app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort']) 
         pass

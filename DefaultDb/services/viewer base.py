@@ -263,16 +263,12 @@ def Main():
     target = globalParameter['PathDB']
     globalParameter['PathDB'] = os.path.join(globalParameter['PathLocal'], "Db", globalParameter['TargetDB'] + ".db")
 
-    try:        
-        if(globalParameter['LocalIp'] == None):
-            globalParameter['LocalIp'] = GetCorrectIp(socket.gethostbyname_ex(socket.gethostname()))
-    except:
-        print('error ip')
-
     try:
         if(globalParameter['MAINWEBSERVER'] == True):
-            rl = RemoteLog()
-            rl.CheckRestAPIThread(command="viewer base -base=services -t " + target, host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'])
+            remoteLogTargetIp = GetCorrectIp()
+            if(globalParameter['LocalIp'] != '0.0.0.0'): remoteLogTargetIp = globalParameter['LocalIp']
+            rl = RemoteLog()            
+            rl.CheckRestAPIThread(command="viewer base -base=services -t " + target, host = str(remoteLogTargetIp),port=globalParameter['LocalPort'])
             #app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'], ssl_context='adhoc') 
             app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort']) 
             pass

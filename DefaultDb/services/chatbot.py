@@ -19,7 +19,7 @@ from flask_cors import CORS
 
 globalParameter = {}
 globalParameter['LocalPort'] = 8805
-globalParameter['LocalIp'] = "0.0.0.0"
+globalParameter['LocalIp'] = '0.0.0.0'
 globalParameter['LocalUsername'] = getpass.getuser().replace(' ','_')
 globalParameter['LocalHostname'] = socket.gethostname().replace(' ','_')
 globalParameter['MAINWEBSERVER'] = True
