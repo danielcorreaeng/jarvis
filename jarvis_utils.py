@@ -419,16 +419,19 @@ def GetCorrectPath():
     os.chdir(dir_path)
 
     jarvis_file = os.path.join(dir_path, globalParameter['FileJarvis'])
-    ini_file = os.path.join(dir_path, globalParameter['configFile'])
     if(os.path.isfile(jarvis_file) == False):
         jarvis_file = os.path.join(dir_path, '..', globalParameter['FileJarvis'])
-        ini_file = os.path.join(dir_path, '..', globalParameter['configFile'])
         if(os.path.isfile(jarvis_file) == False):
             jarvis_file = os.path.join(dir_path, '..', '..', globalParameter['FileJarvis'])
+
+    ini_file = os.path.join(dir_path, globalParameter['configFile'])
+    if(os.path.isfile(ini_file) == False):
+        ini_file = os.path.join(dir_path, '..', globalParameter['configFile'])
+        if(os.path.isfile(ini_file) == False):
             ini_file = os.path.join(dir_path, '..', '..', globalParameter['configFile'])
-            if(os.path.isfile(jarvis_file) == False):
+            if(os.path.isfile(ini_file) == False):
                 return
-    
+
     globalParameter['PathExecutable'] = sys.executable
     globalParameter['PathLocal'] = os.path.dirname(os.path.realpath(jarvis_file))
     globalParameter['PathJarvis'] = jarvis_file

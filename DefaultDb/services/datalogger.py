@@ -266,6 +266,7 @@ def Main():
     #globalsub.subs(LoadVarsIni, LoadVarsIni2)
 
     GetCorrectPath()
+    FixVars()
         
     try:
         if(globalParameter['MAINWEBSERVER'] == True):
