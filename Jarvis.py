@@ -45,9 +45,6 @@ globalParameter['LastCommand'] = ''
 globalParameter['ProgramDisplayOut'] = False
 globalParameter['LoggerIp'] = str(socket.gethostbyname(socket.gethostname())) +  ':8810'
 
-globalParameter['RemoteCmdUpload'] = 'rmt upload'
-globalParameter['RemoteCmdDownload'] = 'rmt download'
-
 globalParameter['FileCommandModel'] = os.path.join(globalParameter['PathLocal'], "model_command.py")
 globalParameter['FileServiceModel'] = os.path.join(globalParameter['PathLocal'], "model_service.py")
 globalParameter['FileUtils'] = os.path.join(globalParameter['PathLocal'], "jarvis_utils.py")
@@ -75,7 +72,125 @@ class MyException(Exception):
     def __str__(self):
         return repr(self.parameter)
 
+
 class MyDb():
+	class Parameters():
+		def __init__(self):
+			self.path = globalParameter['PathDB']
+			self.db = os.path.join(self.path, globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername'] + ".db")
+			self.changed = False
+			self.dbName = globalParameter['LocalHostname'] + "_" + globalParameter['LocalUsername']
+			pass
+
+	def __init__(self, dbParameters):
+		self.dbParameters = dbParameters
+
+	def __del__(self):
+		pass
+
+	def CheckDb(self):
+		result = False
+
+		try:
+			if os.path.exists (globalParameter['PathDB'])== False:
+				os.mkdir (globalParameter['PathDB'])
+
+			db = self.dbParameters.db
+
+			checkdb = os.path.isdir(db)			
+			if(checkdb == False):
+				os.mkdir(db)
+
+			result = True
+		except:
+			raise MyException("MyDb : CheckDb : Internal Error.")
+
+		return result
+
+	def SelectCommandFromTag(self,name):
+		result = None, 'py'
+		command = None
+
+		try:
+			db = self.dbParameters.db
+
+			for _localfile in glob.glob(os.path.join(db, "*")):
+				_localfile_name = os.path.basename(_localfile)
+				_localfile_name, _localfile_ext = os.path.splitext(_localfile_name)
+
+				if(_localfile_name !=name):
+					continue
+
+				with open(_localfile, 'rb') as _file:
+					command = _file.read()
+
+				result = command, _localfile_ext.replace(".","")
+			
+		except:
+			raise MyException("MyDb : SelectCommandFromTag : Internal Error.")
+
+		return result #command, filetype
+
+	def InsertTagWithFile(self, tag, _file):
+		result = False
+
+		try:
+			db = self.dbParameters.db
+			filetype = os.path.splitext(_file)[1][1:]
+			name = os.path.join(db, tag.replace(" ", "_").replace(".","") + "." + filetype)
+			shutil.copyfile(_file, name)
+			result = True
+		except:
+			raise MyException("MyDb : InsertTag : Internal Error.")
+
+		return result
+
+	def SelectListTagsLike(self,name):
+		result = []
+		command = None		
+
+		try:
+			db = self.dbParameters.db
+
+			for _localfile in glob.glob(os.path.join(db, "*")):
+				_localfile_name = os.path.basename(_localfile)
+				_localfile_name, _localfile_ext = os.path.splitext(_localfile_name)
+
+				if(name!=None):
+					if name not in _localfile_name: 
+						continue
+
+				with open(_localfile, 'rb') as _file:
+					command = _file.read()
+
+				result.append([_localfile_name, command, _localfile_ext.replace(".","")])
+		except:
+			#raise MyException("MyDb : SelectListTagsLike : Internal Error.")
+			pass
+
+		return result
+
+	def DeleteCommandFromTag(self,name):
+		result = True
+
+		try:
+			db = self.dbParameters.db
+
+			for _localfile in glob.glob(os.path.join(db, "*")):
+				_localfile_name = os.path.basename(_localfile)
+				_localfile_name, _localfile_ext = os.path.splitext(_localfile_name)
+
+				if(_localfile_name !=name):
+					continue
+
+				os.remove(_localfile)
+		except:
+			raise MyException("MyDb : DeleteCommandFromTag : Internal Error.")
+			result = False
+
+		return result
+
+class MyDb_old():
 	class Parameters():
 		def __init__(self):
 			self.path = globalParameter['PathDB']
@@ -332,59 +447,7 @@ class Commands():
 			if(self._DoCommand(_localCommand, _localParameters) == True):
 				return True		
 
-		commandfound = False
-		remotedb = False
-		localbaseTemp = None
-
-		if(_command[0] == "remote"):
-			print('Accessing remote db...')
-
-			jarvisfile = __file__
-
-			jv = JarvisUtils()
-			localbaseTemp = os.path.join(globalParameter['PathOutput'], GetLocalFile().replace(".py", ".db"))
-			_prog = globalParameter['PyCommand'] + " " + jarvisfile + " " + globalParameter['RemoteCmdDownload'] + " " + localbaseTemp + " " + self.parameters.dbParameters.dbName + ".db"
-			out = jv._Run(_prog)
-			
-			_error_00 = str(out).find('Sorry')>=0 
-			_error_01 = str(out).find('ERROR')>=0 
-			_error_02 = os.path.isfile(localbaseTemp) == False
-
-			if(_error_00):
-				print("Sorry. I don't have remote resource. Please create <" + globalParameter['RemoteCmdDownload'] + "> and <" + globalParameter['RemoteCmdUpload'] + "> in my base.")
-			elif(_error_01):
-				print("Sorry. Remote file error.")				
-			elif(_error_02):
-				print("Sorry. I don't have this base in remote.")
-			else:
-				remotedb=True		
-				self.parameters.dbParameters.db = localbaseTemp
-				_command.pop(0)
-
-				if(self._DoCommand(' '.join(_command)) == True):
-					commandfound = True
-
-			if commandfound == False:
-				for i in range(len(_command)-1,0,-1):
-					_localParameters = " ".join(_command[i:])
-					_localCommand = " ".join(_command[0:i])
-
-					if(self._DoCommand(_localCommand, _localParameters) == True):
-						commandfound = True
-						break
-		
-		if(remotedb == True):
-			_prog = globalParameter['PyCommand'] + " " + jarvisfile + " " + globalParameter['RemoteCmdUpload'] + " " + localbaseTemp + " " + self.parameters.dbParameters.dbName + ".db"
-			out = jv._Run(_prog)			
-
-			try:
-				if(os.path.isfile(localbaseTemp) == True):
-					os.remove(localbaseTemp)
-			except:
-				pass
-
-
-		return commandfound
+		return False
 
 	def _RealyDoCommand(self, jv, _command, localFile, parameters):
 			global globalParameter
@@ -455,7 +518,7 @@ class Commands():
 			print(" read <file> <tag0> <tag1> : give me a file and i record with <tag0> <tag1>. ")
 			print(" write <file> <tag0> <tag1> : i save the code in <file>.")
 			print(" readpath <path> : give me a path and i will record all files in my base <path>")
-			print(" writepath <path> : i will save all codes in <path>.")
+			print(" writepath <path> -base=<base> : i will save all codes in <path>.")
 			print(" list <tag0> : i try find in my memory <tag0>.")
 			print(" find <tag0> : i try find in my memory <tag0> and describes.")
 			print(" copy <base> <tag0> : i copy <tag0> to <base>.")
