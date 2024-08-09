@@ -137,7 +137,7 @@ class MyDb():
 		try:
 			db = self.dbParameters.db
 			filetype = os.path.splitext(_file)[1][1:]
-			name = os.path.join(db, tag.replace(" ", "_").replace(".","") + "." + filetype)
+			name = os.path.join(db, tag.replace(".","") + "." + filetype)
 			shutil.copyfile(_file, name)
 			result = True
 		except:
@@ -194,44 +194,67 @@ class JarvisUtils():
 	def __init__(self):
 		self.log = False
 
-	def LogFuction(self):
+	def LogFuction(self, state="start", stdout=""): #'; 'status' : 'start'; status' : 'alive'; 'status' : 'finish'
+		result = False
 		try:
-			request = requests.get('http://' + globalParameter['LoggerIp'])
+			data = []
+			url = "http://" + globalParameter['LoggerIp'] + "/log"
+			headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+			id = globalParameter['LocalFile'].replace("_", "").replace(globalParameter['ExtensionFile'], "")		
 
-			if request.status_code == 200:
-				print("Hey. Log is online, honey.")
-				id = GetLocalFile().replace("_", "").replace(globalParameter['ExtensionFile'], "")
+			if(stdout == None):
+				stdout = ""
 
-				data = []
+			if(state=="start"):
+				request = requests.get('http://' + globalParameter['LoggerIp'])
+				if request.status_code == 200:
+					print("Hey. Log is online, honey.")
+					result = True
+			if((state=="start" and result==True) or state=="alive" or state=="finish"):
 				localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
-				data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : globalParameter['LastCommand'] , 'time' : localTime , 'status' : 'start'})
-
-				url = "http://" + globalParameter['LoggerIp'] + "/log"
-				headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+				data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : globalParameter['LastCommand'] , 'time' : localTime , 'status' : state, 'tag' : 'command', 'data' : stdout })
 				requests.post(url, data=json.dumps(data), headers=headers)
 
-				while (self.log):
-					localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
-					#print(localTime)
-					data[:] = []
-					data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : globalParameter['LastCommand'] , 'time' : localTime , 'status' : 'alive'})
-					requests.post(url, data=json.dumps(data), headers=headers)
-					time.sleep(5.0)
-
-				data[:] = []
-				localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
-				data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : globalParameter['LastCommand'] , 'time' : localTime , 'status' : 'finish'})
-				requests.post(url, data=json.dumps(data), headers=headers)
-			else:
-				pass
 		except:
 			pass
-
-	def LogThread(self):
-		threadLog = threading.Thread(target=self.LogFuction, args=())
-		threadLog.start()
+		return result
+	
 
 	def _Run(self,command, activeLog=True, waitReturn=True):
+		result = None
+		proc = None
+		lastcheck = datetime.datetime.now() - datetime.timedelta(seconds=10)
+		checkLog = False
+		if(activeLog): 
+			checkLog = self.LogFuction()
+
+		if(waitReturn==True):
+			result = ''
+			with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True) as proc:
+				for line in proc.stdout:
+					result = result + str(line)
+
+					line = ' '.join(str(line,'utf-8').splitlines())
+					if(len(line)>0 and globalParameter['ProgramDisplayOut']==True):						
+						print(line)  
+					currentcheck = datetime.datetime.now()
+					timecheck = currentcheck - lastcheck
+
+					if(checkLog and int(timecheck.seconds) > 5):					
+						lastcheck = currentcheck
+						self.LogFuction('alive', result)
+		else:
+			proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+
+		if(checkLog): 	
+			self.LogFuction("finish", result)
+
+		if(waitReturn==False):
+			time.sleep(5)
+
+		return result
+	
+	def _Run2(self,command, activeLog=True, waitReturn=True):
 		result = None
 		proc = None
 		self.log = True

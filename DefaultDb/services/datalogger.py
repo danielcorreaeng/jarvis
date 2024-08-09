@@ -69,46 +69,23 @@ class MyLog():
     #def sqlCreateLog(self):
     #    return "CREATE TABLE log (localid integer PRIMARY KEY AUTOINCREMENT , id string, user string, host string, start string, finish string, alive string, command string, log string)"
 
-    def Insert(self, _id , _user , _host , _time , _command , _status, _tag):
+    def Insert(self, _id , _user , _host , _time , _command , _status, _tag, _data):
         result = False
 
-        try:
-            db = globalParameter['PathDB']
-            self.CheckDb(db)
+        #try:
+        db = globalParameter['PathDB']
+        self.CheckDb(db)
 
-            conn = sqlite3.connect(db)
-            cursor = conn.cursor()
-            sql = ''
+        conn = sqlite3.connect(db)
+        cursor = conn.cursor()
+        sql = "insert or replace into log (id, user, host, command, log, tag, " + _status + ", data) values ((select id from log where id = '"+ _id +"'),'"+ _user +"','"+ _host +"','"+ _command +"','"+ _status +"','"+ _tag +"','"+ _time +"', ?)"
+        cursor.execute(sql,  (sqlite3.Binary(_data.encode()),))
+        conn.commit()
+        conn.close()
 
-            if(_status == 'start'):
-                sql =  "update log set user='"+ _user +"', host='"+ _host +"', command='"+ _command +"', log='"+ _status +"', tag='"+ _tag +"', start='"+ _time +"' where id='"+ _id +"'"
-            elif(_status == 'finish'):
-                sql =  "update log set user='"+ _user +"', host='"+ _host +"', command='"+ _command +"', log='"+ _status +"', tag='"+ _tag +"', finish='"+ _time +"' where id='"+ _id +"'"
-            elif(_status == 'alive'):
-                sql =  "update log set user='"+ _user +"', host='"+ _host +"', command='"+ _command +"', log='"+ _status +"', tag='"+ _tag +"', alive='"+ _time +"' where id='"+ _id +"'"
-            print(sql)
-
-            cursor.execute(sql)
-            rowchange = cursor.rowcount
-            cursor.execute(sql)
-            conn.commit()
-
-            if(rowchange==0):
-                if(_status == 'start'):
-                    sql = "insert or ignore into log (id , user , host , tag , start, finish, alive, command , log) values ('"+ _id +"', '"+ _user +"', '"+ _host +"', '"+ _tag +"', '"+ _time +"','','','"+ _command +"','"+ _status +"' )"
-                elif(_status == 'finish'):
-                    sql =  "insert or ignore into log (id , user , host , tag , start, finish, alive , command , log) values ('"+ _id +"','"+ _user +"', '"+ _host +"', '"+ _tag +"', '','"+ _time +"','','"+ _command +"','"+ _status +"' )"
-                elif(_status == 'alive'):
-                    sql =  "insert or ignore into log (id , user , host , tag , start, finish, alive , command , log) values ('"+ _id +"','"+ _user +"', '"+ _host +"', '"+ _tag +"', '"+ _time +"','','','"+ _command +"','"+ _status +"' )"
-                print(sql)
-                #return
-                cursor.execute(sql)
-                conn.commit()
-                conn.close()
-
-            result = True
-        except:
-            raise MyException("MyDb : CheckDb : Internal Error.")
+        result = True
+        #except:
+        #raise MyException("MyDb : CheckDb : Internal Error.")
 
         return result
 
@@ -158,10 +135,12 @@ def Log():
         _tag = 'command'
         if 'tag' in data.keys():
             _tag = data['tag']
-
+        _data = ''    
+        if 'data' in data.keys():
+            _data = data['data']
 
         db = MyLog()
-        db.Insert(_id , _user , _host , _time , _command , _status, _tag)
+        db.Insert(_id , _user , _host , _time , _command , _status, _tag, _data)
         #db.SelectAll()
         return 'ok'
 
