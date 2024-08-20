@@ -220,10 +220,10 @@ class JarvisUtils():
 		return result
 	
 
-	def _Run(self,command, activeLog=True, waitReturn=True):
+	def _Run(self,command, activeLog=True, waitReturn=True,returnOnlyErrorTag=False):
 		result = None
 		proc = None
-		lastcheck = datetime.datetime.now() - datetime.timedelta(seconds=10)
+		lastcheck = datetime.datetime.now()# - datetime.timedelta(seconds=10)
 		checkLog = False
 		if(activeLog): 
 			checkLog = self.LogFuction()
@@ -235,8 +235,14 @@ class JarvisUtils():
 					result = result + str(line)
 
 					line = ' '.join(str(line,'utf-8').splitlines())
-					if(len(line)>0 and globalParameter['ProgramDisplayOut']==True):						
+					
+					if((len(line)>0 and globalParameter['ProgramDisplayOut']==True)):						
 						print(line)  
+					elif ("error" in line.lower()):
+						result = "Error detected. Use -display=true or read logs"
+						if(returnOnlyErrorTag == False):
+							print(result) 
+
 					currentcheck = datetime.datetime.now()
 					timecheck = currentcheck - lastcheck
 
@@ -252,33 +258,6 @@ class JarvisUtils():
 		if(waitReturn==False):
 			time.sleep(5)
 
-		return result
-	
-	def _Run2(self,command, activeLog=True, waitReturn=True):
-		result = None
-		proc = None
-		self.log = True
-		
-		if(activeLog==True):
-			self.LogThread()
-
-		try:
-			if(waitReturn==True):
-				proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
-				(out, err) = proc.communicate()
-				result = out
-				if(len(out)>0 and globalParameter['ProgramDisplayOut']==True):
-					print(str(out, 'utf-8'))          
-			else:                
-				proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
-				#proc = subprocess.Popen(command)		
-		except:
-			pass
-
-		if(waitReturn==False):
-			time.sleep(5)
-
-		self.log = False
 		return result
 
 	def ChatBot(self, message):
@@ -731,9 +710,9 @@ class Commands():
 
 								out = ""
 								if(test_help_002 == True):
-									out = jv._Run(_prog + ' -d', False)
+									out = jv._Run(_prog + ' -d', False, True, True)
 								elif(test_help_001 == True):									
-									out = jv._Run(_prog + ' -h', False)
+									out = jv._Run(_prog + ' -h', False, True, True)
 
 								if(os.path.isfile(localFile) == True):
 									os.remove(localFile)
