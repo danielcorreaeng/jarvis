@@ -233,9 +233,10 @@ class JarvisUtils():
 			with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True) as proc:
 				for line in proc.stdout:
 					result = result + str(line)
-
-					line = ' '.join(str(line,'utf-8').splitlines())
-					
+					#line = ' '.join(str(line).splitlines())
+					#line = ' '.join(str(line,'utf-8').splitlines()) 					
+					line = ' '.join(str(line,'latin-1').splitlines())
+		
 					if((len(line)>0 and globalParameter['ProgramDisplayOut']==True)):						
 						print(line)  
 					elif ("error" in line.lower()):
