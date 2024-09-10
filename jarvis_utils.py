@@ -20,6 +20,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask import Flask, Response, redirect, url_for, request, session, abort
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user 
 from pathlib import Path
+from random import randint
 
 INPUT_DATA = []
 OUTPUT_DATA = []
@@ -176,7 +177,8 @@ class RemoteLog():
 
             if testLogger.status_code == 200:
                 print("Hey. Log Server is online.")
-                id = str(Path(sys.argv[0]).stem).replace("_", "")
+                #id = str(Path(sys.argv[0]).stem).replace("_", "")
+                id =  datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + str(randint(0, 999)) 
 
                 data = []
                 localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")

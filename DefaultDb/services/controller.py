@@ -29,7 +29,7 @@ class TestCases_Local(TestCases):
 @app.route('/list/services')
 @login_required
 def ListServices():
-    maskIp = globalParameter['LocalIp'].split('.')
+    maskIp = GetCorrectIp().split('.')
     maskIp = str(maskIp[0]) + '.' + str(maskIp[1]) + '.' + str(maskIp[2]) 
     
     test = maskIp in str(request.remote_addr) 

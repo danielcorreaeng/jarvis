@@ -42,7 +42,7 @@ class MyLog():
             cursor = conn.cursor()		
 
             if(checkdb == False):
-                sql = "CREATE TABLE log (localid integer PRIMARY KEY AUTOINCREMENT , id string, user string, host string, start string, finish string, alive string, command string, log string, tag string)"
+                sql = "CREATE TABLE log (localid integer PRIMARY KEY AUTOINCREMENT , id string, user string, host string, start string, finish string, alive string, command string, log string, tag string, data blob)"
                 cursor.execute(sql)
                 conn.commit()
             else:
@@ -57,6 +57,15 @@ class MyLog():
                     sql = "UPDATE log SET tag = 'command' WHERE id>0"
                     cursor.execute(sql)
                     conn.commit()
+
+                sql = "SELECT COUNT(*) AS CNTREC FROM pragma_table_info('log') WHERE name='data'"
+                cursor.execute(sql)
+                result = cursor.fetchall()[0][0]
+
+                if(int(result)==0):
+                    sql = "ALTER TABLE log ADD data BLOB"
+                    cursor.execute(sql)
+                    conn.commit()       
 
             conn.close()
 
@@ -78,9 +87,18 @@ class MyLog():
 
         conn = sqlite3.connect(db)
         cursor = conn.cursor()
-        sql = "insert or replace into log (id, user, host, command, log, tag, " + _status + ", data) values ((select id from log where id = '"+ _id +"'),'"+ _user +"','"+ _host +"','"+ _command +"','"+ _status +"','"+ _tag +"','"+ _time +"', ?)"
+        print(_id)
+        sql = "update log set log='"+ _status +"'," + _status + "='"+ _time +"', data=? where id='" + str(_id) + "'"
+        print(sql)
         cursor.execute(sql,  (sqlite3.Binary(_data.encode()),))
+        rowchange = cursor.rowcount
         conn.commit()
+
+        if(rowchange==0):
+            sql = "insert into log (id, user, host, command, log, tag, " + _status + ", data) values ('"+ _id +"','"+ _user +"','"+ _host +"','"+ _command +"','"+ _status +"','"+ _tag +"','"+ _time +"', ?)"
+            cursor.execute(sql,  (sqlite3.Binary(_data.encode()),))
+            conn.commit()
+
         conn.close()
 
         result = True
@@ -148,7 +166,7 @@ def Log():
 @login_required
 def Table():
 
-    maskIp = globalParameter['LocalIp'].split('.')
+    maskIp = GetCorrectIp().split('.')
     maskIp = str(maskIp[0]) + '.' + str(maskIp[1]) + '.' + str(maskIp[2]) 
 
     test = maskIp in str(request.remote_addr) 
@@ -232,7 +250,7 @@ def makeTable(tag):
     PAGE_SCRIPT = "<script>$(function () {$('#example1').DataTable({'paging': true,'lengthChange': false,'searching' : true,'ordering': true,'info': true,'autoWidth' : false,'order': [[ 5, 'desc' ]],dom: 'Bfrtip',buttons: ['copy', 'excel', 'pdf', 'print']})})</script>"
 
 
-    local_addr = 'http://' + str(globalParameter['LocalIp']) + ":" + str(globalParameter['LocalPort'])
+    local_addr = 'http://' + str(GetCorrectIp()) + ":" + str(globalParameter['LocalPort'])
     PAGE_MENU = '''<nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse"><div class="position-sticky pt-3"><ul class="nav flex-column"><li class="nav-item"><a class="nav-link active" aria-current="page" href="''' + local_addr + '''/list/log"><span data-feather="home"></span>Commands</a></li><li class="nav-item"><a class="nav-link" href="''' + local_addr + '''/list/log?tag=service"><span data-feather="file"></span>Services</a></li></ul></div></nav>'''
 
     return makePage(TITLE, DATA, PAGE_SCRIPT,'', PAGE_MENU)

@@ -200,7 +200,7 @@ class JarvisUtils():
 			data = []
 			url = "http://" + globalParameter['LoggerIp'] + "/log"
 			headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-			id = globalParameter['LocalFile'].replace("_", "").replace(globalParameter['ExtensionFile'], "")		
+			id = globalParameter['LocalFile'].replace("_", "").replace(".", "").replace(globalParameter['ExtensionFile'], "")		
 
 			if(stdout == None):
 				stdout = ""
@@ -230,9 +230,11 @@ class JarvisUtils():
 
 		if(waitReturn==True):
 			result = ''
+			log = ''
 			with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True) as proc:
 				for line in proc.stdout:
-					result = result + str(line)
+					result = result + str(line,'latin-1')
+					log = log + str(line)
 					#line = ' '.join(str(line).splitlines())
 					#line = ' '.join(str(line,'utf-8').splitlines()) 					
 					line = ' '.join(str(line,'latin-1').splitlines())
@@ -249,12 +251,12 @@ class JarvisUtils():
 
 					if(checkLog and int(timecheck.seconds) > 5):					
 						lastcheck = currentcheck
-						self.LogFuction('alive', result)
+						self.LogFuction('alive', log)
 		else:
 			proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
 
 		if(checkLog): 	
-			self.LogFuction("finish", result)
+			self.LogFuction("finish", log)
 
 		if(waitReturn==False):
 			time.sleep(5)
