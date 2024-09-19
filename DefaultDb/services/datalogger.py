@@ -117,18 +117,18 @@ class MyLog():
             print(db)
             conn = sqlite3.connect(db)
             cursor = conn.cursor()
-            sql = "SELECT localid , id , user , host , start , finish , alive , command , log , tag FROM log order by localid desc LIMIT 50"
+            sql = "SELECT localid , id , user , host , start , finish , alive , command , log , tag, data FROM log order by localid desc LIMIT 20"
             if(tag != None):
-                sql = "SELECT localid , id , user , host , start , finish , alive , command , log , tag FROM log WHERE tag='" + tag + "' order by localid desc LIMIT 50"
-            print(sql)
+                sql = "SELECT localid , id , user , host , start , finish , alive , command , log , tag, data  FROM log WHERE tag='" + tag + "' order by localid desc LIMIT 20"
+            #print(sql)
             cursor.execute(sql)
 
             result = rows = cursor.fetchall()
 
-            if(len(rows) > 0):
-                for row in rows:
-                    #print(row)
-                    pass
+            #if(len(rows) > 0):
+            #    for row in rows:
+            #        #print(row)
+            #        pass
 
             conn.close()
         except:
@@ -189,9 +189,10 @@ def index():
 def makeTable(tag):
     TITLE = 'TABLE'
     DATA =  ''
+    DATA += '''<div class="modal fade" id="modal1" tabindex="1000" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"></div><div class="modal-body"><div id="divmodal1"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button></div></div></div></div>'''
     DATA += '<div class="table-responsive"><table id="example1" class="table table-bordered table-striped">'
     DATA += '<thead>'
-    DATA += '<tr><th>#</th><th>user</th><th>host</th><th>Start</th><th>Finish</th><th>Alive</th><th>Command</th><th>status</th><th>tag</th></tr>'
+    DATA += '<tr><th>#</th><th>user</th><th>host</th><th>Start</th><th>Finish</th><th>Alive</th><th>Command</th><th>status</th><th>tag</th><th>tag2</th></tr>'
     DATA += '</thead>'
     DATA += '<tbody>'
 
@@ -240,14 +241,19 @@ def makeTable(tag):
                     DATA += "Dead | " + method
 
             DATA += '</td><td>'
-            DATA += str(row[9]).replace(' ',',')            
+            DATA += str(row[9]).replace(' ',',')          
+            DATA += '</td><td>'
+            text = str(row[10],'latin-1').replace('"','').replace('\n','<br>').replace('\\r','').replace("b'",'').replace('"','').replace('`','').replace('\"','').replace("'",'')
+            print(text)
+            DATA +='''<a data-bs-toggle="modal" data-bs-target="#modal1" href="#" onclick="TextToModal(`"''' + text +'''`);return false;">terra</a>'''
             DATA += '</td></tr>'
             pass
 
     DATA += '</tbody>'
-    DATA += '<tfoot><tr><th>#</th><th>user</th><th>host</th><th>Start</th><th>Finish</th><th>Alive</th><th>Command</th><th>status</th><th>tag</th></tr></tfoot>'
+    DATA += '<tfoot><tr><th>#</th><th>user</th><th>host</th><th>Start</th><th>Finish</th><th>Alive</th><th>Command</th><th>status</th><th>tag</th><th>tag2</th></tr></tfoot>'
     DATA += '</table></div>'
     PAGE_SCRIPT = "<script>$(function () {$('#example1').DataTable({'paging': true,'lengthChange': false,'searching' : true,'ordering': true,'info': true,'autoWidth' : false,'order': [[ 5, 'desc' ]],dom: 'Bfrtip',buttons: ['copy', 'excel', 'pdf', 'print']})})</script>"
+    PAGE_SCRIPT += '''<script>function TextToModal(_text) { document.getElementById("divmodal1").innerHTML=_text; }</script>'''
 
 
     local_addr = 'http://' + str(GetCorrectIp()) + ":" + str(globalParameter['LocalPort'])
