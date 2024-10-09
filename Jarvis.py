@@ -234,7 +234,8 @@ class JarvisUtils():
 			with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True) as proc:
 				for line in proc.stdout:
 					result = result + str(line,'latin-1')
-					log = log + str(line)
+					log = log + str(line,'latin-1')
+					#log = log + str(line)
 					#line = ' '.join(str(line).splitlines())
 					#line = ' '.join(str(line,'utf-8').splitlines()) 					
 					line = ' '.join(str(line,'latin-1').splitlines())

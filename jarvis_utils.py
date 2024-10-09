@@ -223,7 +223,6 @@ def CheckProcess(process_name_target, process_arg_target):
     method = "-"
 
     try:
-        method = "checked by restapi"
         process_arg_target = str(process_arg_target)
         if "-p " in process_arg_target and "-i " in process_arg_target:
             start = process_arg_target.find("-p") + 3
@@ -245,6 +244,7 @@ def CheckProcess(process_name_target, process_arg_target):
 
             if testProcess.status_code == 200:
                 result = True 
+                method = "checked by restapi"
     except:
         pass  
 

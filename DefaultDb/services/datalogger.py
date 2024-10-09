@@ -207,6 +207,7 @@ def makeTable(tag):
             alive = False
             if process_arg_target in list_process_checked:
                 alive = False
+                method = "already tested"
             else:
                 if(str(row[3]) == str(globalParameter['LocalHostname'])):
                     alive, method = CheckProcess("python", process_arg_target)
@@ -243,16 +244,20 @@ def makeTable(tag):
             DATA += '</td><td>'
             DATA += str(row[9]).replace(' ',',')          
             DATA += '</td><td>'
-            text = str(row[10],'latin-1').replace('"','').replace('\n','<br>').replace('\\r','').replace("b'",'').replace('"','').replace('`','').replace('\"','').replace("'",'')
-            print(text)
-            DATA +='''<a data-bs-toggle="modal" data-bs-target="#modal1" href="#" onclick="TextToModal(`"''' + text +'''`);return false;">terra</a>'''
+            _text = str(row[10],'latin-1')
+            _text = _text.replace('"',' ')
+            _text = _text.replace('\n','<br>')
+            _text = _text.replace('\\','\\\\')
+            #print(_text)
+            if(len(_text)>10):
+                DATA +='''<a data-bs-toggle="modal" data-bs-target="#modal1" href="#" onclick="TextToModal(`''' + _text +'''`);return false;">Log</a>'''
             DATA += '</td></tr>'
             pass
 
     DATA += '</tbody>'
     DATA += '<tfoot><tr><th>#</th><th>user</th><th>host</th><th>Start</th><th>Finish</th><th>Alive</th><th>Command</th><th>status</th><th>tag</th><th>tag2</th></tr></tfoot>'
     DATA += '</table></div>'
-    PAGE_SCRIPT = "<script>$(function () {$('#example1').DataTable({'paging': true,'lengthChange': false,'searching' : true,'ordering': true,'info': true,'autoWidth' : false,'order': [[ 5, 'desc' ]],dom: 'Bfrtip',buttons: ['copy', 'excel', 'pdf', 'print']})})</script>"
+    PAGE_SCRIPT = "<script>$(function () {$('#example1').DataTable({'paging': true,'lengthChange': false,'searching' : true,'ordering': true,'info': true,'autoWidth' : false,'order': [[ 3, 'desc' ]],dom: 'Bfrtip',buttons: ['copy', 'excel', 'pdf', 'print']})})</script>"
     PAGE_SCRIPT += '''<script>function TextToModal(_text) { document.getElementById("divmodal1").innerHTML=_text; }</script>'''
 
 
