@@ -42,7 +42,7 @@ class MyLog():
             cursor = conn.cursor()		
 
             if(checkdb == False):
-                sql = "CREATE TABLE log (localid integer PRIMARY KEY AUTOINCREMENT , id string, user string, host string, start string, finish string, alive string, command string, log string, tag string)"
+                sql = "CREATE TABLE log (localid integer PRIMARY KEY AUTOINCREMENT , id string, user string, host string, start string, finish string, alive string, command string, log string, tag string, data blob)"
                 cursor.execute(sql)
                 conn.commit()
             else:
@@ -58,6 +58,15 @@ class MyLog():
                     cursor.execute(sql)
                     conn.commit()
 
+                sql = "SELECT COUNT(*) AS CNTREC FROM pragma_table_info('log') WHERE name='data'"
+                cursor.execute(sql)
+                result = cursor.fetchall()[0][0]
+
+                if(int(result)==0):
+                    sql = "ALTER TABLE log ADD data BLOB"
+                    cursor.execute(sql)
+                    conn.commit()       
+
             conn.close()
 
             result = True
@@ -69,46 +78,32 @@ class MyLog():
     #def sqlCreateLog(self):
     #    return "CREATE TABLE log (localid integer PRIMARY KEY AUTOINCREMENT , id string, user string, host string, start string, finish string, alive string, command string, log string)"
 
-    def Insert(self, _id , _user , _host , _time , _command , _status, _tag):
+    def Insert(self, _id , _user , _host , _time , _command , _status, _tag, _data):
         result = False
 
-        try:
-            db = globalParameter['PathDB']
-            self.CheckDb(db)
+        #try:
+        db = globalParameter['PathDB']
+        self.CheckDb(db)
 
-            conn = sqlite3.connect(db)
-            cursor = conn.cursor()
-            sql = ''
+        conn = sqlite3.connect(db)
+        cursor = conn.cursor()
+        print(_id)
+        sql = "update log set log='"+ _status +"'," + _status + "='"+ _time +"', data=? where id='" + str(_id) + "'"
+        print(sql)
+        cursor.execute(sql,  (sqlite3.Binary(_data.encode()),))
+        rowchange = cursor.rowcount
+        conn.commit()
 
-            if(_status == 'start'):
-                sql =  "update log set user='"+ _user +"', host='"+ _host +"', command='"+ _command +"', log='"+ _status +"', tag='"+ _tag +"', start='"+ _time +"' where id='"+ _id +"'"
-            elif(_status == 'finish'):
-                sql =  "update log set user='"+ _user +"', host='"+ _host +"', command='"+ _command +"', log='"+ _status +"', tag='"+ _tag +"', finish='"+ _time +"' where id='"+ _id +"'"
-            elif(_status == 'alive'):
-                sql =  "update log set user='"+ _user +"', host='"+ _host +"', command='"+ _command +"', log='"+ _status +"', tag='"+ _tag +"', alive='"+ _time +"' where id='"+ _id +"'"
-            print(sql)
-
-            cursor.execute(sql)
-            rowchange = cursor.rowcount
-            cursor.execute(sql)
+        if(rowchange==0):
+            sql = "insert into log (id, user, host, command, log, tag, " + _status + ", data) values ('"+ _id +"','"+ _user +"','"+ _host +"','"+ _command +"','"+ _status +"','"+ _tag +"','"+ _time +"', ?)"
+            cursor.execute(sql,  (sqlite3.Binary(_data.encode()),))
             conn.commit()
 
-            if(rowchange==0):
-                if(_status == 'start'):
-                    sql = "insert or ignore into log (id , user , host , tag , start, finish, alive, command , log) values ('"+ _id +"', '"+ _user +"', '"+ _host +"', '"+ _tag +"', '"+ _time +"','','','"+ _command +"','"+ _status +"' )"
-                elif(_status == 'finish'):
-                    sql =  "insert or ignore into log (id , user , host , tag , start, finish, alive , command , log) values ('"+ _id +"','"+ _user +"', '"+ _host +"', '"+ _tag +"', '','"+ _time +"','','"+ _command +"','"+ _status +"' )"
-                elif(_status == 'alive'):
-                    sql =  "insert or ignore into log (id , user , host , tag , start, finish, alive , command , log) values ('"+ _id +"','"+ _user +"', '"+ _host +"', '"+ _tag +"', '"+ _time +"','','','"+ _command +"','"+ _status +"' )"
-                print(sql)
-                #return
-                cursor.execute(sql)
-                conn.commit()
-                conn.close()
+        conn.close()
 
-            result = True
-        except:
-            raise MyException("MyDb : CheckDb : Internal Error.")
+        result = True
+        #except:
+        #raise MyException("MyDb : CheckDb : Internal Error.")
 
         return result
 
@@ -122,18 +117,18 @@ class MyLog():
             print(db)
             conn = sqlite3.connect(db)
             cursor = conn.cursor()
-            sql = "SELECT localid , id , user , host , start , finish , alive , command , log , tag FROM log order by localid desc LIMIT 50"
+            sql = "SELECT localid , id , user , host , start , finish , alive , command , log , tag, data FROM log order by localid desc LIMIT 20"
             if(tag != None):
-                sql = "SELECT localid , id , user , host , start , finish , alive , command , log , tag FROM log WHERE tag='" + tag + "' order by localid desc LIMIT 50"
-            print(sql)
+                sql = "SELECT localid , id , user , host , start , finish , alive , command , log , tag, data  FROM log WHERE tag='" + tag + "' order by localid desc LIMIT 20"
+            #print(sql)
             cursor.execute(sql)
 
             result = rows = cursor.fetchall()
 
-            if(len(rows) > 0):
-                for row in rows:
-                    #print(row)
-                    pass
+            #if(len(rows) > 0):
+            #    for row in rows:
+            #        #print(row)
+            #        pass
 
             conn.close()
         except:
@@ -158,10 +153,12 @@ def Log():
         _tag = 'command'
         if 'tag' in data.keys():
             _tag = data['tag']
-
+        _data = ''    
+        if 'data' in data.keys():
+            _data = data['data']
 
         db = MyLog()
-        db.Insert(_id , _user , _host , _time , _command , _status, _tag)
+        db.Insert(_id , _user , _host , _time , _command , _status, _tag, _data)
         #db.SelectAll()
         return 'ok'
 
@@ -169,7 +166,7 @@ def Log():
 @login_required
 def Table():
 
-    maskIp = globalParameter['LocalIp'].split('.')
+    maskIp = GetCorrectIp().split('.')
     maskIp = str(maskIp[0]) + '.' + str(maskIp[1]) + '.' + str(maskIp[2]) 
 
     test = maskIp in str(request.remote_addr) 
@@ -192,9 +189,10 @@ def index():
 def makeTable(tag):
     TITLE = 'TABLE'
     DATA =  ''
+    DATA += '''<div class="modal fade" id="modal1" tabindex="1000" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"></div><div class="modal-body"><div id="divmodal1"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button></div></div></div></div>'''
     DATA += '<div class="table-responsive"><table id="example1" class="table table-bordered table-striped">'
     DATA += '<thead>'
-    DATA += '<tr><th>#</th><th>user</th><th>host</th><th>Start</th><th>Finish</th><th>Alive</th><th>Command</th><th>status</th><th>tag</th></tr>'
+    DATA += '<tr><th>#</th><th>user</th><th>host</th><th>Start</th><th>Finish</th><th>Alive</th><th>Command</th><th>status</th><th>tag</th><th>tag2</th></tr>'
     DATA += '</thead>'
     DATA += '<tbody>'
 
@@ -209,6 +207,7 @@ def makeTable(tag):
             alive = False
             if process_arg_target in list_process_checked:
                 alive = False
+                method = "already tested"
             else:
                 if(str(row[3]) == str(globalParameter['LocalHostname'])):
                     alive, method = CheckProcess("python", process_arg_target)
@@ -243,17 +242,26 @@ def makeTable(tag):
                     DATA += "Dead | " + method
 
             DATA += '</td><td>'
-            DATA += str(row[9]).replace(' ',',')            
+            DATA += str(row[9]).replace(' ',',')          
+            DATA += '</td><td>'
+            _text = str(row[10],'latin-1')
+            _text = _text.replace('"',' ')
+            _text = _text.replace('\n','<br>')
+            _text = _text.replace('\\','\\\\')
+            #print(_text)
+            if(len(_text)>10):
+                DATA +='''<a data-bs-toggle="modal" data-bs-target="#modal1" href="#" onclick="TextToModal(`''' + _text +'''`);return false;">Log</a>'''
             DATA += '</td></tr>'
             pass
 
     DATA += '</tbody>'
-    DATA += '<tfoot><tr><th>#</th><th>user</th><th>host</th><th>Start</th><th>Finish</th><th>Alive</th><th>Command</th><th>status</th><th>tag</th></tr></tfoot>'
+    DATA += '<tfoot><tr><th>#</th><th>user</th><th>host</th><th>Start</th><th>Finish</th><th>Alive</th><th>Command</th><th>status</th><th>tag</th><th>tag2</th></tr></tfoot>'
     DATA += '</table></div>'
-    PAGE_SCRIPT = "<script>$(function () {$('#example1').DataTable({'paging': true,'lengthChange': false,'searching' : true,'ordering': true,'info': true,'autoWidth' : false,'order': [[ 5, 'desc' ]],dom: 'Bfrtip',buttons: ['copy', 'excel', 'pdf', 'print']})})</script>"
+    PAGE_SCRIPT = "<script>$(function () {$('#example1').DataTable({'paging': true,'lengthChange': false,'searching' : true,'ordering': true,'info': true,'autoWidth' : false,'order': [[ 3, 'desc' ]],dom: 'Bfrtip',buttons: ['copy', 'excel', 'pdf', 'print']})})</script>"
+    PAGE_SCRIPT += '''<script>function TextToModal(_text) { document.getElementById("divmodal1").innerHTML=_text; }</script>'''
 
 
-    local_addr = 'http://' + str(globalParameter['LocalIp']) + ":" + str(globalParameter['LocalPort'])
+    local_addr = 'http://' + str(GetCorrectIp()) + ":" + str(globalParameter['LocalPort'])
     PAGE_MENU = '''<nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse"><div class="position-sticky pt-3"><ul class="nav flex-column"><li class="nav-item"><a class="nav-link active" aria-current="page" href="''' + local_addr + '''/list/log"><span data-feather="home"></span>Commands</a></li><li class="nav-item"><a class="nav-link" href="''' + local_addr + '''/list/log?tag=service"><span data-feather="file"></span>Services</a></li></ul></div></nav>'''
 
     return makePage(TITLE, DATA, PAGE_SCRIPT,'', PAGE_MENU)

@@ -132,7 +132,10 @@ def makeTable():
 
     PAGE_SCRIPT += '''function FileToModal(id) { document.getElementById("divmodal1").innerHTML=dict[id]; }'''    
     PAGE_SCRIPT += '''</script>'''
-    return makePage(TITLE, DATA, PAGE_SCRIPT)
+
+    PAGE_MENU = '<nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse"><div class="position-sticky pt-3"><ul class="nav flex-column"><li class="nav-item"><a class="nav-link active" aria-current="page" href="' + str(request.url_root) + 'table"><span data-feather="home"></span>Table</a></li><li class="nav-item"><a class="nav-link" href="' + str(request.url_root) + 'gallery"><span data-feather="file"></span>Gallery</a></li></ul></div></nav>'
+
+    return makePage(TITLE, DATA, PAGE_SCRIPT, '', PAGE_MENU)
 
 def makeGallery():
     TITLE = 'Gallery'
@@ -190,7 +193,9 @@ def makeGallery():
     PAGE_SCRIPT += '''function ImageToModal(id) { document.getElementById("imgmodal1").src=document.getElementById("img" + id).src; }'''
     PAGE_SCRIPT += '''function SearchFunction(){var searchvalue = document.getElementById('search_input').value; filterSelection(searchvalue);}</script>'''
 
-    return makePage(TITLE, DATA, PAGE_SCRIPT,PAGE_PAGE_CSS)
+    PAGE_MENU = '<nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse"><div class="position-sticky pt-3"><ul class="nav flex-column"><li class="nav-item"><a class="nav-link active" aria-current="page" href="' + str(request.url_root) + 'table"><span data-feather="home"></span>Table</a></li><li class="nav-item"><a class="nav-link" href="' + str(request.url_root) + 'gallery"><span data-feather="file"></span>Gallery</a></li></ul></div></nav>'
+
+    return makePage(TITLE, DATA, PAGE_SCRIPT,PAGE_PAGE_CSS,PAGE_MENU)
 
 def Main():
     """view the images from path in web (/table). Optional parameters: -t (--target) to select a base -p (--port) to select target port """    
@@ -225,7 +230,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=Main.__doc__)
     parser.add_argument('-d','--description', help='Description of program', action='store_true')
     parser.add_argument('-u','--tests', help='Execute tests', action='store_true')
-    parser.add_argument('-t','--target', help='Path target')
+    parser.add_argument('-t','--target', help='Path target (use fullpath)')
     parser.add_argument('-p','--port', help='Service running in target port')
     parser.add_argument('-i','--ip', help='Service running in target ip')
     parser.add_argument('-c','--config', help='Config.ini file')

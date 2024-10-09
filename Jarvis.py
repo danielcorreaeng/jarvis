@@ -45,9 +45,6 @@ globalParameter['LastCommand'] = ''
 globalParameter['ProgramDisplayOut'] = False
 globalParameter['LoggerIp'] = str(socket.gethostbyname(socket.gethostname())) +  ':8810'
 
-globalParameter['RemoteCmdUpload'] = 'rmt upload'
-globalParameter['RemoteCmdDownload'] = 'rmt download'
-
 globalParameter['FileCommandModel'] = os.path.join(globalParameter['PathLocal'], "model_command.py")
 globalParameter['FileServiceModel'] = os.path.join(globalParameter['PathLocal'], "model_service.py")
 globalParameter['FileUtils'] = os.path.join(globalParameter['PathLocal'], "jarvis_utils.py")
@@ -75,6 +72,7 @@ class MyException(Exception):
     def __str__(self):
         return repr(self.parameter)
 
+
 class MyDb():
 	class Parameters():
 		def __init__(self):
@@ -99,29 +97,9 @@ class MyDb():
 
 			db = self.dbParameters.db
 
-			checkdb = os.path.isfile(db)
-			
-			conn = sqlite3.connect(db)
-			cursor = conn.cursor()		
-
+			checkdb = os.path.isdir(db)			
 			if(checkdb == False):
-				sql = "CREATE TABLE tag (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, command BLOB, filetype  TEXT DEFAULT py)"
-				cursor.execute(sql)
-				conn.commit()
-			else:
-				sql = "SELECT COUNT(*) AS CNTREC FROM pragma_table_info('tag') WHERE name='filetype'"
-				cursor.execute(sql)
-				result = cursor.fetchall()[0][0]
-
-				if(int(result)==0):
-					sql = "ALTER TABLE tag ADD filetype TEXT DEFAULT py"
-					cursor.execute(sql)
-					conn.commit()
-					sql = "UPDATE tag SET filetype = 'py' WHERE id>0"
-					cursor.execute(sql)
-					conn.commit()
-
-			conn.close()
+				os.mkdir(db)
 
 			result = True
 		except:
@@ -130,44 +108,37 @@ class MyDb():
 		return result
 
 	def SelectCommandFromTag(self,name):
-		result = None, '.py'
+		result = None, 'py'
+		command = None
 
 		try:
 			db = self.dbParameters.db
-			conn = sqlite3.connect(db)
-			cursor = conn.cursor()
-			sql = "SELECT id,command, filetype FROM tag WHERE name='" + name + "'"
-			cursor.execute(sql)
 
-			#_id, command = cursor.fetchone() #debug
+			for _localfile in glob.glob(os.path.join(db, "*")):
+				_localfile_name = os.path.basename(_localfile)
+				_localfile_name, _localfile_ext = os.path.splitext(_localfile_name)
 
-			rows = cursor.fetchall()
+				if(_localfile_name !=name):
+					continue
 
-			if(len(rows) > 0):
-				result = rows[0][1], rows[0][2]
+				with open(_localfile, 'rb') as _file:
+					command = _file.read()
 
-			conn.close()
+				result = command, _localfile_ext.replace(".","")
+			
 		except:
 			raise MyException("MyDb : SelectCommandFromTag : Internal Error.")
 
-		return result
+		return result #command, filetype
 
-	def InsertTagWithFile(self, tag, inputFileBin):
+	def InsertTagWithFile(self, tag, _file):
 		result = False
 
 		try:
 			db = self.dbParameters.db
-			conn = sqlite3.connect(db)
-			cursor = conn.cursor()
-
-			with open(inputFileBin, "rb") as input_file:
-				filetype = os.path.splitext(inputFileBin)[1][1:]
-				ablob = input_file.read()
-				cursor.execute("insert or replace into tag (id, name, filetype, command) values ((select id from tag where name = '"+ tag +"'),'"+ tag +"','"+ filetype +"', ?)", [sqlite3.Binary(ablob)])
-				conn.commit()
-
-			conn.close()
-
+			filetype = os.path.splitext(_file)[1][1:]
+			name = os.path.join(db, tag.replace(".","") + "." + filetype)
+			shutil.copyfile(_file, name)
 			result = True
 		except:
 			raise MyException("MyDb : InsertTag : Internal Error.")
@@ -176,22 +147,23 @@ class MyDb():
 
 	def SelectListTagsLike(self,name):
 		result = []
+		command = None		
 
 		try:
 			db = self.dbParameters.db
-			conn = sqlite3.connect(db)
-			cursor = conn.cursor()
 
-			if(name!=None):
-				cursor.execute("SELECT name, command, filetype FROM tag WHERE name LIKE '%" + name + "%'")
-				#sql = "select name, command from tag WHERE (name like '%extract%' and name like '%ppt%' and name like '%foo%')"
-			else:
-				cursor.execute("SELECT name, command, filetype FROM tag")
+			for _localfile in glob.glob(os.path.join(db, "*")):
+				_localfile_name = os.path.basename(_localfile)
+				_localfile_name, _localfile_ext = os.path.splitext(_localfile_name)
 
-			for row in cursor.fetchall():
-				result.append([str(row[0]), row[1], str(row[2])])
-				
-			conn.close()
+				if(name!=None):
+					if name not in _localfile_name: 
+						continue
+
+				with open(_localfile, 'rb') as _file:
+					command = _file.read()
+
+				result.append([_localfile_name, command, _localfile_ext.replace(".","")])
 		except:
 			#raise MyException("MyDb : SelectListTagsLike : Internal Error.")
 			pass
@@ -203,12 +175,15 @@ class MyDb():
 
 		try:
 			db = self.dbParameters.db
-			conn = sqlite3.connect(db)
-			cursor = conn.cursor()
-			sql = "DELETE FROM tag WHERE name='" + name + "'"
-			cursor.execute(sql)
-			conn.commit()
-			conn.close()
+
+			for _localfile in glob.glob(os.path.join(db, "*")):
+				_localfile_name = os.path.basename(_localfile)
+				_localfile_name, _localfile_ext = os.path.splitext(_localfile_name)
+
+				if(_localfile_name !=name):
+					continue
+
+				os.remove(_localfile)
 		except:
 			raise MyException("MyDb : DeleteCommandFromTag : Internal Error.")
 			result = False
@@ -219,68 +194,74 @@ class JarvisUtils():
 	def __init__(self):
 		self.log = False
 
-	def LogFuction(self):
+	def LogFuction(self, state="start", stdout=""): #'; 'status' : 'start'; status' : 'alive'; 'status' : 'finish'
+		result = False
 		try:
-			request = requests.get('http://' + globalParameter['LoggerIp'])
+			data = []
+			url = "http://" + globalParameter['LoggerIp'] + "/log"
+			headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+			id = globalParameter['LocalFile'].replace("_", "").replace(".", "").replace(globalParameter['ExtensionFile'], "")		
 
-			if request.status_code == 200:
-				print("Hey. Log is online, honey.")
-				id = GetLocalFile().replace("_", "").replace(globalParameter['ExtensionFile'], "")
+			if(stdout == None):
+				stdout = ""
 
-				data = []
+			if(state=="start"):
+				request = requests.get('http://' + globalParameter['LoggerIp'])
+				if request.status_code == 200:
+					print("Hey. Log is online, honey.")
+					result = True
+			if((state=="start" and result==True) or state=="alive" or state=="finish"):
 				localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
-				data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : globalParameter['LastCommand'] , 'time' : localTime , 'status' : 'start'})
-
-				url = "http://" + globalParameter['LoggerIp'] + "/log"
-				headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+				data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : globalParameter['LastCommand'] , 'time' : localTime , 'status' : state, 'tag' : 'command', 'data' : stdout })
 				requests.post(url, data=json.dumps(data), headers=headers)
 
-				while (self.log):
-					localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
-					#print(localTime)
-					data[:] = []
-					data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : globalParameter['LastCommand'] , 'time' : localTime , 'status' : 'alive'})
-					requests.post(url, data=json.dumps(data), headers=headers)
-					time.sleep(5.0)
-
-				data[:] = []
-				localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
-				data.append({'id' : id , 'user' : globalParameter['LocalUsername'] , 'host' : globalParameter['LocalHostname'] , 'command' : globalParameter['LastCommand'] , 'time' : localTime , 'status' : 'finish'})
-				requests.post(url, data=json.dumps(data), headers=headers)
-			else:
-				pass
 		except:
 			pass
+		return result
+	
 
-	def LogThread(self):
-		threadLog = threading.Thread(target=self.LogFuction, args=())
-		threadLog.start()
-
-	def _Run(self,command, activeLog=True, waitReturn=True):
+	def _Run(self,command, activeLog=True, waitReturn=True,returnOnlyErrorTag=False):
 		result = None
 		proc = None
-		self.log = True
-		
-		if(activeLog==True):
-			self.LogThread()
+		lastcheck = datetime.datetime.now()# - datetime.timedelta(seconds=10)
+		checkLog = False
+		if(activeLog): 
+			checkLog = self.LogFuction()
 
-		try:
-			if(waitReturn==True):
-				proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
-				(out, err) = proc.communicate()
-				result = out
-				if(len(out)>0 and globalParameter['ProgramDisplayOut']==True):
-					print(str(out, 'utf-8'))          
-			else:                
-				proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
-				#proc = subprocess.Popen(command)		
-		except:
-			pass
+		if(waitReturn==True):
+			result = ''
+			log = ''
+			with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True) as proc:
+				for line in proc.stdout:
+					result = result + str(line,'latin-1')
+					log = log + str(line,'latin-1')
+					#log = log + str(line)
+					#line = ' '.join(str(line).splitlines())
+					#line = ' '.join(str(line,'utf-8').splitlines()) 					
+					line = ' '.join(str(line,'latin-1').splitlines())
+		
+					if((len(line)>0 and globalParameter['ProgramDisplayOut']==True)):						
+						print(line)  
+					elif ("error" in line.lower()):
+						result = "Error detected. Use -display=true or read logs"
+						if(returnOnlyErrorTag == False):
+							print(result) 
+
+					currentcheck = datetime.datetime.now()
+					timecheck = currentcheck - lastcheck
+
+					if(checkLog and int(timecheck.seconds) > 5):					
+						lastcheck = currentcheck
+						self.LogFuction('alive', log)
+		else:
+			proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+
+		if(checkLog): 	
+			self.LogFuction("finish", log)
 
 		if(waitReturn==False):
 			time.sleep(5)
 
-		self.log = False
 		return result
 
 	def ChatBot(self, message):
@@ -332,59 +313,7 @@ class Commands():
 			if(self._DoCommand(_localCommand, _localParameters) == True):
 				return True		
 
-		commandfound = False
-		remotedb = False
-		localbaseTemp = None
-
-		if(_command[0] == "remote"):
-			print('Accessing remote db...')
-
-			jarvisfile = __file__
-
-			jv = JarvisUtils()
-			localbaseTemp = os.path.join(globalParameter['PathOutput'], GetLocalFile().replace(".py", ".db"))
-			_prog = globalParameter['PyCommand'] + " " + jarvisfile + " " + globalParameter['RemoteCmdDownload'] + " " + localbaseTemp + " " + self.parameters.dbParameters.dbName + ".db"
-			out = jv._Run(_prog)
-			
-			_error_00 = str(out).find('Sorry')>=0 
-			_error_01 = str(out).find('ERROR')>=0 
-			_error_02 = os.path.isfile(localbaseTemp) == False
-
-			if(_error_00):
-				print("Sorry. I don't have remote resource. Please create <" + globalParameter['RemoteCmdDownload'] + "> and <" + globalParameter['RemoteCmdUpload'] + "> in my base.")
-			elif(_error_01):
-				print("Sorry. Remote file error.")				
-			elif(_error_02):
-				print("Sorry. I don't have this base in remote.")
-			else:
-				remotedb=True		
-				self.parameters.dbParameters.db = localbaseTemp
-				_command.pop(0)
-
-				if(self._DoCommand(' '.join(_command)) == True):
-					commandfound = True
-
-			if commandfound == False:
-				for i in range(len(_command)-1,0,-1):
-					_localParameters = " ".join(_command[i:])
-					_localCommand = " ".join(_command[0:i])
-
-					if(self._DoCommand(_localCommand, _localParameters) == True):
-						commandfound = True
-						break
-		
-		if(remotedb == True):
-			_prog = globalParameter['PyCommand'] + " " + jarvisfile + " " + globalParameter['RemoteCmdUpload'] + " " + localbaseTemp + " " + self.parameters.dbParameters.dbName + ".db"
-			out = jv._Run(_prog)			
-
-			try:
-				if(os.path.isfile(localbaseTemp) == True):
-					os.remove(localbaseTemp)
-			except:
-				pass
-
-
-		return commandfound
+		return False
 
 	def _RealyDoCommand(self, jv, _command, localFile, parameters):
 			global globalParameter
@@ -455,7 +384,7 @@ class Commands():
 			print(" read <file> <tag0> <tag1> : give me a file and i record with <tag0> <tag1>. ")
 			print(" write <file> <tag0> <tag1> : i save the code in <file>.")
 			print(" readpath <path> : give me a path and i will record all files in my base <path>")
-			print(" writepath <path> : i will save all codes in <path>.")
+			print(" writepath <path> -base=<base> : i will save all codes of <base> in <path>.")
 			print(" list <tag0> : i try find in my memory <tag0>.")
 			print(" find <tag0> : i try find in my memory <tag0> and describes.")
 			print(" copy <base> <tag0> : i copy <tag0> to <base>.")
@@ -785,9 +714,9 @@ class Commands():
 
 								out = ""
 								if(test_help_002 == True):
-									out = jv._Run(_prog + ' -d', False)
+									out = jv._Run(_prog + ' -d', False, True, True)
 								elif(test_help_001 == True):									
-									out = jv._Run(_prog + ' -h', False)
+									out = jv._Run(_prog + ' -h', False, True, True)
 
 								if(os.path.isfile(localFile) == True):
 									os.remove(localFile)

@@ -20,6 +20,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask import Flask, Response, redirect, url_for, request, session, abort
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user 
 from pathlib import Path
+from random import randint
 
 INPUT_DATA = []
 OUTPUT_DATA = []
@@ -176,7 +177,8 @@ class RemoteLog():
 
             if testLogger.status_code == 200:
                 print("Hey. Log Server is online.")
-                id = str(Path(sys.argv[0]).stem).replace("_", "")
+                #id = str(Path(sys.argv[0]).stem).replace("_", "")
+                id =  datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f") + str(randint(0, 999)) 
 
                 data = []
                 localTime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
@@ -221,7 +223,6 @@ def CheckProcess(process_name_target, process_arg_target):
     method = "-"
 
     try:
-        method = "checked by restapi"
         process_arg_target = str(process_arg_target)
         if "-p " in process_arg_target and "-i " in process_arg_target:
             start = process_arg_target.find("-p") + 3
@@ -243,6 +244,7 @@ def CheckProcess(process_name_target, process_arg_target):
 
             if testProcess.status_code == 200:
                 result = True 
+                method = "checked by restapi"
     except:
         pass  
 
