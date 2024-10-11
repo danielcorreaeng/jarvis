@@ -219,6 +219,17 @@ class JarvisUtils():
 			pass
 		return result
 	
+	def RunLikeJarvisUtil(command, parameters=None, wait=False):
+		#testing in linux
+		if(parameters != None):
+			command = [command, parameters]
+
+		if(wait == True):
+			proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+			proc.communicate()
+		else:
+			threadRun = Thread(target=RunLikeJarvisUtil, args=(command, None, True,))
+			threadRun.start()
 
 	def _Run(self,command, activeLog=True, waitReturn=True,returnOnlyErrorTag=False):
 		result = None
@@ -231,13 +242,10 @@ class JarvisUtils():
 		if(waitReturn==True):
 			result = ''
 			log = ''
-			with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True) as proc:
+			with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as proc:
 				for line in proc.stdout:
 					result = result + str(line,'latin-1')
-					log = log + str(line,'latin-1')
-					#log = log + str(line)
-					#line = ' '.join(str(line).splitlines())
-					#line = ' '.join(str(line,'utf-8').splitlines()) 					
+					log = log + str(line,'latin-1')					
 					line = ' '.join(str(line,'latin-1').splitlines())
 		
 					if((len(line)>0 and globalParameter['ProgramDisplayOut']==True)):						
@@ -254,7 +262,7 @@ class JarvisUtils():
 						lastcheck = currentcheck
 						self.LogFuction('alive', log)
 		else:
-			proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+			RunLikeJarvisUtil(command)
 
 		if(checkLog): 	
 			self.LogFuction("finish", log)

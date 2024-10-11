@@ -267,14 +267,15 @@ def CheckProcess(process_name_target, process_arg_target):
     return result, method
 
 def Run(command, parameters=None, wait=False):
-    #print(command)
     if(parameters != None):
-        proc = subprocess.Popen([command, parameters], stdout=subprocess.PIPE, shell=True)
-    else:
-        proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+        command = [command, parameters]
 
     if(wait == True):
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         proc.communicate()
+    else:
+        threadRun = Thread(target=Run, args=(command, None, True,))
+        threadRun.start()
 
 def RunJarvis(tags, parameters=None, wait=True):
     Run(globalParameter['PathExecutable'] + ' ' + globalParameter['PathJarvis'] + ' ' + tags, parameters, wait) 
