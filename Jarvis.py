@@ -115,6 +115,8 @@ class MyDb():
 			db = self.dbParameters.db
 
 			for _localfile in glob.glob(os.path.join(db, "*")):
+				if(os.path.isdir(_localfile)):
+					continue				
 				_localfile_name = os.path.basename(_localfile)
 				_localfile_name, _localfile_ext = os.path.splitext(_localfile_name)
 
@@ -153,6 +155,8 @@ class MyDb():
 			db = self.dbParameters.db
 
 			for _localfile in glob.glob(os.path.join(db, "*")):
+				if(os.path.isdir(_localfile)):
+					continue
 				_localfile_name = os.path.basename(_localfile)
 				_localfile_name, _localfile_ext = os.path.splitext(_localfile_name)
 
@@ -177,6 +181,8 @@ class MyDb():
 			db = self.dbParameters.db
 
 			for _localfile in glob.glob(os.path.join(db, "*")):
+				if(os.path.isdir(_localfile)):
+					continue
 				_localfile_name = os.path.basename(_localfile)
 				_localfile_name, _localfile_ext = os.path.splitext(_localfile_name)
 
@@ -220,12 +226,11 @@ class JarvisUtils():
 		return result
 	
 	def RunLikeJarvisUtil(command, parameters=None, wait=False):
-		#testing in linux
 		if(parameters != None):
 			command = [command, parameters]
 
 		if(wait == True):
-			proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+			proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
 			proc.communicate()
 		else:
 			threadRun = Thread(target=RunLikeJarvisUtil, args=(command, None, True,))
@@ -242,7 +247,7 @@ class JarvisUtils():
 		if(waitReturn==True):
 			result = ''
 			log = ''
-			with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as proc:
+			with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True) as proc:
 				for line in proc.stdout:
 					result = result + str(line,'latin-1')
 					log = log + str(line,'latin-1')					

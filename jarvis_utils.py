@@ -27,9 +27,9 @@ OUTPUT_DATA = []
 OUTPUT_DATA_WEBHOOK = []
 
 globalParameter = {}
-globalParameter['FileJarvis'] = "Jarvis.py"
-globalParameter['PathLocal'] = os.path.join("C:\\","Jarvis")
-globalParameter['PathJarvis'] = os.path.join("C:\\","Jarvis", globalParameter['FileJarvis'])
+globalParameter['FileJarvis'] = "jarvis.py"
+globalParameter['PathLocal'] = os.path.join("C:\\","jarvis")
+globalParameter['PathJarvis'] = os.path.join("C:\\","jarvis", globalParameter['FileJarvis'])
 globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'], "Output")
 globalParameter['PathExecutable'] = "python"
 globalParameter['configFile'] = "config.ini"
@@ -271,7 +271,7 @@ def Run(command, parameters=None, wait=False):
         command = [command, parameters]
 
     if(wait == True):
-        proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
         proc.communicate()
     else:
         threadRun = Thread(target=Run, args=(command, None, True,))

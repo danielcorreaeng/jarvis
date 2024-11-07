@@ -27,9 +27,9 @@ globalParameter['PathDB'] = "db.sqlite3"
 globalParameter['maximum_similarity_threshold'] = 0.80
 globalParameter['unanswered_answer'] = 'Não entendi'
 
-globalParameter['FileJarvis'] = "Jarvis.py"
-globalParameter['PathLocal'] = os.path.join("C:\\","Jarvis")
-globalParameter['PathJarvis'] = os.path.join("C:\\","Jarvis", globalParameter['FileJarvis'])
+globalParameter['FileJarvis'] = "jarvis.py"
+globalParameter['PathLocal'] = os.path.join("C:\\","jarvis")
+globalParameter['PathJarvis'] = os.path.join("C:\\","jarvis", globalParameter['FileJarvis'])
 globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'],"Output")
 globalParameter['PathExecutable'] = "python"
 globalParameter['configFile'] = "config.ini"
@@ -40,7 +40,7 @@ globalParameter['TriggerTags'] = '[img],[file],[link],[raw],[jsonnote],[jsonlink
 globalParameter['TriggerTagsList'] = []
 globalParameter['BotIp4Learn'] = None
 
-#chatbot jarvis updated Mar 25, 2024 - https://github.com/danielcorreaeng/jarvis
+#chatbot jarvis updated Out 25, 2024 - https://github.com/danielcorreaeng/jarvis
 
 app = Flask(__name__, static_url_path="/" + globalParameter['flaskstatic_folder'], static_folder=globalParameter['flaskstatic_folder'])
 CORS(app)
