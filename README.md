@@ -1,7 +1,7 @@
 # Jarvis
 
 A Personal Assistant for Linux and Windows in developed.
-The objective is store automation codes in the database and execute them with associated tags.
+The objective is store automation codes ~~in the database~~ and execute them with associated tags.
 
 ## Authors
 
@@ -131,4 +131,7 @@ config.ini example
     token=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     alloweduser=@user
 
-Notes: defaultpassword is a simple and weak password for services. PyScripter=code use Visual Studio Code for edit code. HideDatabase hides your command bases like list,find,route.
+Notes: 
+- defaultpassword is a simple and weak password for services. 
+- PyScripter=code use Visual Studio Code for edit code. 
+- HideDatabase hides your command bases like list,find,route.

@@ -226,6 +226,11 @@ class JarvisUtils():
 		return result
 	
 	def RunLikeJarvisUtil(command, parameters=None, wait=False):
+		"""
+		Funcao original de jarvis_utils.
+		Versao 07/04/2025
+		Executa comandos no terminal. 
+		"""
 		if(parameters != None):
 			command = [command, parameters]
 
@@ -398,6 +403,7 @@ class Commands():
 			print(" write <file> <tag0> <tag1> : i save the code in <file>.")
 			print(" readpath <path> : give me a path and i will record all files in my base <path>")
 			print(" writepath <path> -base=<base> : i will save all codes of <base> in <path>.")
+			print(" route <tag0> : I will try to map redirection to other tags and ports.")
 			print(" list <tag0> : i try find in my memory <tag0>.")
 			print(" find <tag0> : i try find in my memory <tag0> and describes.")
 			print(" copy <base> <tag0> : i copy <tag0> to <base>.")
@@ -406,7 +412,7 @@ class Commands():
 			print(" ")
 			print(" <tag0> <tag1> -base=<base> : i execute the code what it have tags from <base>.")
 			print(" <tag0> <tag1> -display=true : i execute the code using the program display.")
-			print(" <tag0> <tag1> -program=<program> : i execute the code using other program.")
+			print(" <tag0> <tag1> -program=<program> : i execute the code using other program.")			
 			print(" ")
 			print(" mybot blablabla. : i will speek with you.")
 
@@ -717,8 +723,20 @@ class Commands():
 											start = line.find(targetText)
 											stop = line.find(')')
 											#print(line[start+len(targetText):stop])
-											route = route + '\troute:: ' + line[start+len(targetText):-2]  + '\n'
+											route = route + '\troute (jarvis):: ' + line[start+len(targetText):-2]  + '\n'
 									fileTest.close()	
+
+								targetText = "LocalPort"								
+								if(command == 'route' and str(_command).find(targetText)>=0):
+									fileTest = open(localFile, "r")
+									for line in fileTest:
+										if(line.find(targetText)>=0):
+											start = line.find(targetText)
+											stop = line.find('=')
+											#print(line[start+len(targetText):stop])
+											route = route + '\troute (port):: ' + line[start+len(targetText)+5:]  + '\n'
+											break
+									fileTest.close()
 
 								_prog = globalParameter['PyCommand'] + " " + localFile
 
@@ -846,12 +864,9 @@ class Commands():
 			_command = "import time\n"
 			_command = _command + "import sys,os\n"
 			_command = _command + "import subprocess\n"
+			_command = _command + "from jarvis_utils import *\n"
 			_command = _command + "\n"
-			_command = _command + "def Run(command, parameters=None):\n"
-			_command = _command + "\tif(parameters != None):\n"
-			_command = _command + "\t\tproc = subprocess.Popen([command, parameters], shell=True)\n"
-			_command = _command + "\telse:\n"
-			_command = _command + "\t\tproc = subprocess.Popen(command, shell=True)\n"
+			_command = _command + "globalParameter['MAINLOOP_CONTROLLER'] = False\n"
 			_command = _command + "\n"
 			_command = _command + "def OpenFolder(path):\n"
 			_command = _command + "\tif sys.platform == 'win32':\n"
@@ -864,14 +879,20 @@ class Commands():
 			_command = _command + "\t#Run(r'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe','-incognito www.google.com.br')\n"
 			_command = _command + "\t\n"
 			_command = _command + "if __name__ == '__main__':\n"
-			_command = _command + "\tif(len(sys.argv) > 1):\n"
-			_command = _command + "\t\tif(sys.argv[len(sys.argv)-1] == '-h' or sys.argv[len(sys.argv)-1] == 'help'):\n"
-			_command = _command + "\t\t\tprint(Main.__doc__)\n"
-			_command = _command + "\t\t\tsys.exit()\n"
+			_command = _command + "\tparser = argparse.ArgumentParser(description=Main.__doc__)\n"
+			_command = _command + "\tparser.add_argument('-d','--description', help='Description of program', action='store_true')\n"
+			_command = _command + "\t\n"
+			_command = _command + "\targs, unknown = parser.parse_known_args()\n"
+			_command = _command + "\targs = vars(args)\n"
+			_command = _command + "\t\n"
+			_command = _command + "\tif args['description'] == True:\n"
+			_command = _command + "\t\tprint(Main.__doc__)\n"
+			_command = _command + "\t\tsys.exit()\n"
+			_command = _command + "\t\n"
+			_command = _command + "\tparam = ' '.join(unknown)\n"
+			_command = _command + "\t\n"
 			_command = _command + "\tMain()\n"
 			_command = _command + "\t\n"
-			_command = _command + "\tparam = ' '.join(sys.argv[1:])\n"
-			_command = _command + "\tprint('param ' + param)\n"
 			
 		return _command
 

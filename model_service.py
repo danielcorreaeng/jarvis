@@ -95,10 +95,10 @@ def Main():
         print('error mainThread')
 
     try:
-        if(globalParameter['MAINWEBSERVER'] == True):
-            #rl = RemoteLog()
+        if(globalParameter['MAINWEBSERVER'] == True):            
             #remoteLogTargetIp = GetCorrectIp()
             #if(globalParameter['LocalIp'] != '0.0.0.0'): remoteLogTargetIp = globalParameter['LocalIp']
+            #rl = RemoteLog()
             #rl.CheckRestAPIThread(command="tags -base=xxxxxxx", host = str(remoteLogTargetIp),port=globalParameter['LocalPort'])            
             #app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort'], ssl_context='adhoc') 
             app.run(host = str(globalParameter['LocalIp']),port=globalParameter['LocalPort']) 

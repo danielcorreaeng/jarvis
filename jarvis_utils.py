@@ -267,6 +267,16 @@ def CheckProcess(process_name_target, process_arg_target):
     return result, method
 
 def Run(command, parameters=None, wait=False):
+    """
+    Funcao original de jarvis_utils.
+    Versao 07/04/2025
+    Executa comandos no OS. 
+
+    Notas:
+    Para programas no Windows com janela, melhor passar os parametros por parameters; se no Linux ou prompt, melhor unificar em um command em string apenas.
+    Para executar o programa sem aguardar retorno, usa-se uma thread.
+    Nota-se que para comandos em Python (shell), voce pode disparar programas paralelos por essa funcao sem aguardar. Todavia para programas nao Python, geralmente eh melhor ter uma thread ativa monitorando.
+    """
     if(parameters != None):
         command = [command, parameters]
 
