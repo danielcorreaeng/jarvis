@@ -9,13 +9,17 @@ import datetime
 import json
 import getpass
 import socket
-
-from chatterbot import ChatBot
-from chatterbot.trainers import ChatterBotCorpusTrainer, ListTrainer
-from chatterbot.comparisons import levenshtein_distance
+import sqlite3
+import numpy as np
 
 from flask import Flask, redirect, url_for, request, render_template
 from flask_cors import CORS
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import re
+import nltk
+from nltk.corpus import stopwords
 
 globalParameter = {}
 globalParameter['LocalPort'] = 8805
@@ -23,13 +27,13 @@ globalParameter['LocalIp'] = '0.0.0.0'
 globalParameter['LocalUsername'] = getpass.getuser().replace(' ','_')
 globalParameter['LocalHostname'] = socket.gethostname().replace(' ','_')
 globalParameter['MAINWEBSERVER'] = True
-globalParameter['PathDB'] = "db.sqlite3"
-globalParameter['maximum_similarity_threshold'] = 0.80
+globalParameter['PathDB'] = "db2.sqlite3"
+globalParameter['maximum_similarity_threshold'] = 0.50
 globalParameter['unanswered_answer'] = 'Não entendi'
 
-globalParameter['FileJarvis'] = "jarvis.py"
-globalParameter['PathLocal'] = os.path.join("C:\\","jarvis")
-globalParameter['PathJarvis'] = os.path.join("C:\\","jarvis", globalParameter['FileJarvis'])
+globalParameter['FileJarvis'] = "Jarvis.py"
+globalParameter['PathLocal'] = os.path.join("C:\\","Jarvis")
+globalParameter['PathJarvis'] = os.path.join("C:\\","Jarvis", globalParameter['FileJarvis'])
 globalParameter['PathOutput'] = os.path.join(globalParameter['PathLocal'],"Output")
 globalParameter['PathExecutable'] = "python"
 globalParameter['configFile'] = "config.ini"
@@ -39,8 +43,9 @@ globalParameter['flaskstatic_folder'] = 'External'
 globalParameter['TriggerTags'] = '[img],[file],[link],[raw],[jsonnote],[jsonlink],[jsonlinkfile],[jsonnotefile]'
 globalParameter['TriggerTagsList'] = []
 globalParameter['BotIp4Learn'] = None
+globalParameter['BotName'] = 'Jarvis'
 
-#chatbot jarvis updated Out 25, 2024 - https://github.com/danielcorreaeng/jarvis
+#chatbot jarvis updated Abril 15, 2025 - https://github.com/danielcorreaeng/jarvis
 
 app = Flask(__name__, static_url_path="/" + globalParameter['flaskstatic_folder'], static_folder=globalParameter['flaskstatic_folder'])
 CORS(app)
@@ -93,52 +98,189 @@ def ChatBotExternal(message, BotIp):
 
 class MyChatBot():
     def __init__(self):
-        noob = False        
-        if os.path.isfile(str(globalParameter['PathDB'])) == False:
-            noob = True
-            print('mode noob')
-        else:
-            print('mode noob off')
+        self.botname = str(globalParameter['BotName'])
+        self.db_path = str(globalParameter['PathDB'])
+        self.unanswered_answer = globalParameter['unanswered_answer']
+        self.threshold = float(globalParameter['maximum_similarity_threshold'])
         
-        self.chatbot = ChatBot(
-            'Jarvis',
-            storage_adapter='chatterbot.storage.SQLStorageAdapter',
-            database_uri='sqlite:///' + str(globalParameter['PathDB']),
-            logic_adapters=[
-                {
-                    'import_path': 'chatterbot.logic.BestMatch',
-                    'default_response': globalParameter['unanswered_answer'],
-                    'maximum_similarity_threshold': globalParameter['maximum_similarity_threshold']
-                }
-            ]
+        # Carregar NLTK recursos necessários
+        try:
+            nltk.data.find('tokenizers/punkt')
+        except LookupError:
+            nltk.download('punkt', quiet=True)
+        try:
+            nltk.data.find('corpora/stopwords')
+        except LookupError:
+            nltk.download('stopwords', quiet=True)
+            
+        self.stop_words = set(stopwords.words('portuguese'))
+        
+        # Inicializar o vetorizador TF-IDF
+        self.vectorizer = TfidfVectorizer(
+            lowercase=True,
+            strip_accents='unicode',
+            ngram_range=(1, 2),
+            max_features=5000
         )
-
-        if noob == True:
-            self.training4memory()
-		
+        
+        # Verificar se o banco existe, caso contrário criar
+        self.initialize_database()
+        
+        # Carregar dados para memória
+        self.questions, self.answers = self.load_data_from_db()
+        
+        # Criar vetores TF-IDF se houver dados
+        if len(self.questions) > 0:
+            self.question_vectors = self.vectorizer.fit_transform(self.questions)
+        else:
+            self.question_vectors = None
+    
     def __del__(self):
         pass
-
+    
+    def initialize_database(self):
+        """Inicializa o banco de dados SQLite se não existir"""
+        if os.path.isfile(self.db_path) == False:
+            print('Criando banco de dados')
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Criar tabela para armazenar as conversas
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS conversations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                question TEXT NOT NULL,
+                answer TEXT NOT NULL,
+                botname TEXT NOT NULL
+            )
+            ''')
+            
+            conn.commit()
+            conn.close()
+    
+    def preprocess_text(self, text):
+        """Pré-processamento de texto para melhorar comparações"""
+        # Converter para minúsculas
+        text = text.lower()
+        # Remover caracteres especiais e manter apenas letras e números
+        text = re.sub(r'[^\w\s]', '', text)
+        # Tokenização
+        tokens = nltk.word_tokenize(text, language='portuguese')
+        # Remover stopwords
+        tokens = [word for word in tokens if word not in self.stop_words]
+        # Juntar tokens novamente
+        return ' '.join(tokens)
+    
+    def load_data_from_db(self):
+        """Carrega os dados do banco SQLite para a memória, filtrando pelo nome do bot"""
+        questions = []
+        answers = []
+        
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # Consultar apenas as conversas deste bot específico
+        cursor.execute("SELECT question, answer FROM conversations WHERE botname = ?", (self.botname,))
+        rows = cursor.fetchall()
+        
+        for row in rows:
+            questions.append(self.preprocess_text(row[0]))
+            answers.append(row[1])
+        
+        conn.close()
+        
+        print(f"Bot '{self.botname}': Carregados {len(questions)} pares de pergunta-resposta da base.")
+        return questions, answers
+    
+    def find_best_match(self, query):
+        """Encontra a melhor correspondência para a pergunta do usuário"""
+        if not self.questions or len(self.questions) == 0:
+            return None, 0.0
+        
+        # Pré-processar a consulta
+        processed_query = self.preprocess_text(query)
+        
+        # Transformar a consulta usando o vetorizador
+        query_vector = self.vectorizer.transform([processed_query])
+        
+        # Calcular a similaridade com todas as perguntas
+        similarity_scores = cosine_similarity(query_vector, self.question_vectors).flatten()
+        
+        # Encontrar o índice da melhor correspondência
+        best_match_index = np.argmax(similarity_scores)
+        best_match_score = similarity_scores[best_match_index]
+        
+        return best_match_index, best_match_score
+    
     def training4conversation(self, conversation):
-        #conversation = ["oi","olá", "Tchau","Até logo", "=)","Legal"]
-        trainer = ListTrainer(self.chatbot)
-        trainer.train(conversation)
+        """Adiciona novas conversas ao banco de dados"""
+        if len(conversation) < 2:
+            print("Erro: A conversa deve conter pelo menos uma pergunta e uma resposta")
+            return
+        
+        # Extrair pergunta e resposta
+        question = conversation[0]
+        answer = conversation[1]
+        
+        # Salvar no banco
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            "INSERT INTO conversations (question, answer, botname) VALUES (?, ?, ?)", (question, answer, self.botname)
+        )
+        
+        conn.commit()
+        conn.close()
+        
+        # Atualizar a memória local
+        processed_question = self.preprocess_text(question)
+        self.questions.append(processed_question)
+        self.answers.append(answer)
+        
+        # Atualizar os vetores
+        self.question_vectors = self.vectorizer.fit_transform(self.questions)
+        
+        print(f"Adicionado à base: '{question}' -> '{answer}'")
     
     def training4memory(self):
-        trainer = ChatterBotCorpusTrainer(self.chatbot)
-        #trainer.train("chatterbot.corpus.english")
-        #trainer.train("chatterbot.corpus.portuguese")
-
+        """Carrega corpus para o treinamento inicial"""
         print('training4memory')
-        if(os.path.exists("pt")==True):
-            trainer.train("pt")
+        corpus_data = []
+        
+        if os.path.exists("pt") == True:
+            # Carregar corpus personalizado do diretório 'pt'
             print('training4memory pt')
+            for filename in os.listdir("pt"):
+                if filename.endswith(".txt"):
+                    file_path = os.path.join("pt", filename)
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        lines = f.readlines()
+                        
+                    # Processar linhas como pares de pergunta-resposta
+                    for i in range(0, len(lines) - 1, 2):
+                        if i + 1 < len(lines):
+                            question = lines[i].strip()
+                            answer = lines[i + 1].strip()
+                            if question and answer:
+                                corpus_data.append([question, answer])
         else:
-            trainer.train("chatterbot.corpus.portuguese")
-            print('training4memory corpus.portuguese')
-
+            # Usar alguns exemplos básicos em português
+            print('training4memory corpus básico')
+            corpus_data = [
+                ["oi", "olá"],
+                ["como vai?", "estou bem, e você?"],
+                ["qual é o seu nome?", "meu nome é Jarvis"],
+                ["tchau", "até logo"],
+                ["ajuda", "como posso ajudar você?"]
+            ]
+        
+        # Adicionar dados ao banco
+        for pair in corpus_data:
+            self.training4conversation(pair)
+    
     def responseTriggerTags(self, ask):
-
+        # Mantido como no código original
         print(ask)
         target = None
         flag = ''
@@ -183,28 +325,44 @@ class MyChatBot():
                 result = result + " (recorded in base " + str(globalParameter['allowedexternalrecordbase']) + ")"
             
             return result
-
+    
     def response(self, ask):
-
+        """Responde a uma pergunta do usuário"""
+        # Verificar por tags especiais primeiro
         for triggerTags in globalParameter['TriggerTagsList']:
             if(str(ask).lower().find(triggerTags) >= 0):
                 result = self.responseTriggerTags(ask)
                 return result
 
+        # Verificar se é uma solicitação de aprendizado
         if(str(ask).lower().find('[learn]') >= 0 and str(ask).lower().find('[answer]') >= 0):
             answer = ask.split('[answer]')[1]
+            if answer[0] == ' ':
+                answer = answer[1:]
             ask = ask.split('[answer]')[0].replace('[learn]','')            
-            self.training4conversation([ask, str(answer)])      
+            self.training4conversation([ask, str(answer)])
+            return answer
 
-        res = self.chatbot.get_response(ask)
-
-        if(globalParameter['BotIp4Learn']!=None and str(res) == str(globalParameter['unanswered_answer'])):  
-            answer = ChatBotExternal(ask, globalParameter['BotIp4Learn'])
-            if(answer != None):
-                self.training4conversation([ask, str(answer)])              
-                res = self.chatbot.get_response(ask)
-                
-        return res            
+        # Buscar a melhor correspondência
+        best_match_index, best_match_score = self.find_best_match(ask)
+        #print(best_match_score)
+        
+        # Responder com base no limiar de similaridade
+        if best_match_score >= self.threshold:
+            res = self.answers[best_match_index]
+        else:
+            res = self.unanswered_answer
+            
+            # Tente aprender de outro bot, se configurado
+            if(globalParameter['BotIp4Learn'] is not None and str(res) == str(self.unanswered_answer)):  
+                answer = ChatBotExternal(ask, globalParameter['BotIp4Learn'])
+                if(answer is not None):
+                    self.training4conversation([ask, str(answer)])              
+                    best_match_index, best_match_score = self.find_best_match(ask)
+                    if best_match_score >= self.threshold:
+                        res = self.answers[best_match_index]
+        
+        return res          
 
 def BotResponse(ask):
     bot = MyChatBot()
@@ -262,14 +420,15 @@ def botresponse():
             ask = data['ask']
             response = BotResponse(ask)     
 
-        print(['result', ask, response])
+        #print(['result', ask, response])
 
         if 'acceptTags' in data:
             if data['acceptTags']=='1':
                 return response
 
         response = response.split('[')[0]
-        print(['final ', ask, response])
+        #print(['final ', ask, response])
+        print([ask, response])
 
         #ask = str(data[0])
         #print(ask)
