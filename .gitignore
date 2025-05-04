@@ -38,6 +38,7 @@ Db/*
 Db\*
 temp/*
 envs/*
+.venv/*
 *.bat
 *.db
 unins000.dat
