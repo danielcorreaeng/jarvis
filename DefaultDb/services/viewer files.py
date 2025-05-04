@@ -9,6 +9,7 @@ import io
 import operator
 from jarvis_utils import *
 from os.path import join
+import shutil
 
 globalParameter['INPUT_DATA_OFF'] = False
 globalParameter['OUTPUT_DATA_OFF'] = False
@@ -46,6 +47,33 @@ def Table():
     res = makeTable()
     return res   
 
+@app.route('/rename', methods=['POST'])
+@login_required
+def rename_file():
+    try:
+        old_name = request.form.get('old_filename')
+        new_name = request.form.get('new_filename')
+        file_ext = request.form.get('file_ext')
+        
+        if not old_name or not new_name or not file_ext:
+            return jsonify({"status": "error", "message": "Missing required parameters"})
+        
+        old_path = os.path.join(globalParameter['TargetPath'], old_name + "." + file_ext)
+        new_path = os.path.join(globalParameter['TargetPath'], new_name + "." + file_ext)
+        
+        if not os.path.exists(old_path):
+            return jsonify({"status": "error", "message": "File not found"})
+            
+        if os.path.exists(new_path):
+            return jsonify({"status": "error", "message": "A file with this name already exists"})
+        
+        # Rename the file
+        shutil.move(old_path, new_path)
+        
+        return jsonify({"status": "success", "message": "File renamed successfully", "redirect": request.referrer})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
 def makeTable():
     TITLE = 'TABLE'
     DATA =  ''
@@ -73,12 +101,100 @@ def makeTable():
     DATA += '<tfoot><tr><th>Tags</th><th>Type</th><th>Action</th></tr></tfoot>'
     DATA += '</table></div>'
 
-    DATA += '''<div class="modal fade" id="modal1" tabindex="1000" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"></div><div class="modal-body"><div id="divmodal1"></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button></div></div></div></div>'''
+    DATA += '''<div class="modal fade" id="modal1" tabindex="1000" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="divmodal1"></div>
+                <form id="renameForm" class="mt-3" style="display: none;">
+                    <div class="mb-3">
+                        <label for="fileName" class="form-label">Editar nome do arquivo:</label>
+                        <input type="text" class="form-control" id="fileName" name="new_filename">
+                        <input type="hidden" id="oldFileName" name="old_filename">
+                        <input type="hidden" id="fileExt" name="file_ext">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-warning" id="editButton" onclick="toggleEditForm()">Editar</button>
+                <button type="button" class="btn btn-primary" id="saveButton" onclick="renameFile()" style="display: none;">Salvar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>'''
 
-    PAGE_SCRIPT = '''<script>var myModal = new bootstrap.Modal(document.getElementById('modal1'));</script>'''
+    PAGE_SCRIPT = '''    <script>
+    var myModal = new bootstrap.Modal(document.getElementById('modal1'));
+    
+    function toggleEditForm() {
+        var form = document.getElementById('renameForm');
+        var editButton = document.getElementById('editButton');
+        var saveButton = document.getElementById('saveButton');
+        
+        if (form.style.display === 'none') {
+            form.style.display = 'block';
+            editButton.classList.remove('btn-warning');
+            editButton.classList.add('btn-secondary');
+            editButton.textContent = 'Cancelar';
+            saveButton.style.display = 'inline-block';
+        } else {
+            form.style.display = 'none';
+            editButton.classList.remove('btn-secondary');
+            editButton.classList.add('btn-warning');
+            editButton.textContent = 'Editar';
+            saveButton.style.display = 'none';
+        }
+    }
+    
+    function showRenameAlert(type, message) {
+        var alertDiv = document.createElement('div');
+        alertDiv.classList.add('alert', 'alert-' + type, 'alert-dismissible', 'fade', 'show');
+        alertDiv.setAttribute('role', 'alert');
+        alertDiv.innerHTML = message + 
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+        
+        document.querySelector('.modal-body').prepend(alertDiv);
+        
+        // Auto dismiss after 5 seconds
+        setTimeout(function() {
+            alertDiv.remove();
+        }, 5000);
+    }
+    
+    function renameFile() {
+        var formData = new FormData(document.getElementById('renameForm'));
+        
+        fetch('/rename', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showRenameAlert('success', data.message);
+                setTimeout(function() {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                showRenameAlert('danger', data.message);
+            }
+        })
+        .catch(error => {
+            showRenameAlert('danger', 'Erro ao renomear arquivo: ' + error);
+        });
+    }
+    </script>'''
+    
     PAGE_SCRIPT += '''<script>$(function () {$('#example1').DataTable({'paging': true,'lengthChange': false,'searching' : true,'ordering': true,'info': true,'autoWidth' : false, dom: 'Bfrtip',buttons: []})})</script>'''
     PAGE_SCRIPT += '''<script>'''
     PAGE_SCRIPT += '''var dict = {};'''
+    PAGE_SCRIPT += '''var fileNames = {};'''
+    PAGE_SCRIPT += '''var fileExts = {};'''
 
     idcount = 0
     for _localfile in files:
@@ -86,6 +202,10 @@ def makeTable():
         name = os.path.splitext(os.path.basename(_localfile))[0]
         filetype = _localfile.split(".")[-1]
         filepath = request.url_root + 'External/' + os.path.basename(_localfile)
+        
+        # Store the file name and extension for the renaming functionality
+        PAGE_SCRIPT += '''fileNames[''' + str(idcount) + '''] = "''' + name + '''";'''
+        PAGE_SCRIPT += '''fileExts[''' + str(idcount) + '''] = "''' + filetype + '''";'''
 
         if(filetype.lower() == "mp4"):
             PAGE_SCRIPT += '''dict[''' + str(idcount) + '''] = '<video width="100%" controls><source src="''' + filepath +  '''" type="video/mp4">Error =S</video>';'''
@@ -128,9 +248,26 @@ def makeTable():
             except:
                 pass
         else:
-            PAGE_SCRIPT += '''no suported'''
+            PAGE_SCRIPT += '''dict[''' + str(idcount) + '''] = "Formato não suportado";'''
 
-    PAGE_SCRIPT += '''function FileToModal(id) { document.getElementById("divmodal1").innerHTML=dict[id]; }'''    
+    PAGE_SCRIPT += '''function FileToModal(id) { 
+        document.getElementById("divmodal1").innerHTML=dict[id];
+        document.getElementById("fileName").value = fileNames[id];
+        document.getElementById("oldFileName").value = fileNames[id];
+        document.getElementById("fileExt").value = fileExts[id];
+        document.getElementById("modalTitle").textContent = fileNames[id] + "." + fileExts[id];
+        
+        // Reset edit form state
+        var form = document.getElementById('renameForm');
+        var editButton = document.getElementById('editButton');
+        var saveButton = document.getElementById('saveButton');
+        
+        form.style.display = 'none';
+        editButton.classList.remove('btn-secondary');
+        editButton.classList.add('btn-warning');
+        editButton.textContent = 'Editar';
+        saveButton.style.display = 'none';
+    }'''    
     PAGE_SCRIPT += '''</script>'''
 
     PAGE_MENU = '<nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse"><div class="position-sticky pt-3"><ul class="nav flex-column"><li class="nav-item"><a class="nav-link active" aria-current="page" href="' + str(request.url_root) + 'table"><span data-feather="home"></span>Table</a></li><li class="nav-item"><a class="nav-link" href="' + str(request.url_root) + 'gallery"><span data-feather="file"></span>Gallery</a></li></ul></div></nav>'
@@ -171,7 +308,32 @@ def makeGallery():
         DATA += '''<div class=" col-lg-3 col-md-4 col-xs-6 thumb column000 people ''' + name + '''"><div class="content"><a data-bs-toggle="modal" data-bs-target="#modal1" href="#" onclick="ImageToModal(''' + str(idcount) + ''');return false;"><img  id="img''' + str(idcount) + '''" style="width:100%" src="''' + filepath  +  '''"></a><h4></h4><p><span class='badge bg-primary'>''' + name_tags.replace(globalParameter['TAG_SEPARATOR'], "</span>&nbsp;<span class='badge bg-primary'>") + '''</span></p></div></div>'''  
 
     DATA += '''</div></div></div>'''  
-    DATA += '''<div class="modal fade" id="modal1" tabindex="1000" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"></div><div class="modal-body"><div id="divmodal1"><img id="imgmodal1" style="width:100%"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button></div></div></div></div>'''
+    DATA += '''<div class="modal fade" id="modal1" tabindex="1000" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="divmodal1"><img id="imgmodal1" style="width:100%"></div>
+                <form id="renameForm" class="mt-3" style="display: none;">
+                    <div class="mb-3">
+                        <label for="fileName" class="form-label">Editar nome do arquivo:</label>
+                        <input type="text" class="form-control" id="fileName" name="new_filename">
+                        <input type="hidden" id="oldFileName" name="old_filename">
+                        <input type="hidden" id="fileExt" name="file_ext">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-warning" id="editButton" onclick="toggleEditForm()">Editar</button>
+                <button type="button" class="btn btn-primary" id="saveButton" onclick="renameFile()" style="display: none;">Salvar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>'''
 
     tags = {k: v for k, v in sorted(tags.items(), key=lambda item: item[1])}
     tags = dict(sorted(  tags.items(), key=operator.itemgetter(1), reverse=True))
@@ -188,9 +350,101 @@ def makeGallery():
             break
 
     DATA = BUTTONS + "<br>&nbsp;<br>" + DATA
-    PAGE_SCRIPT = '''<script>var myModal = new bootstrap.Modal(document.getElementById('modal1'));</script>'''
+    PAGE_SCRIPT = '''    <script>
+    var myModal = new bootstrap.Modal(document.getElementById('modal1'));
+    
+    function toggleEditForm() {
+        var form = document.getElementById('renameForm');
+        var editButton = document.getElementById('editButton');
+        var saveButton = document.getElementById('saveButton');
+        
+        if (form.style.display === 'none') {
+            form.style.display = 'block';
+            editButton.classList.remove('btn-warning');
+            editButton.classList.add('btn-secondary');
+            editButton.textContent = 'Cancelar';
+            saveButton.style.display = 'inline-block';
+        } else {
+            form.style.display = 'none';
+            editButton.classList.remove('btn-secondary');
+            editButton.classList.add('btn-warning');
+            editButton.textContent = 'Editar';
+            saveButton.style.display = 'none';
+        }
+    }
+    
+    function showRenameAlert(type, message) {
+        var alertDiv = document.createElement('div');
+        alertDiv.classList.add('alert', 'alert-' + type, 'alert-dismissible', 'fade', 'show');
+        alertDiv.setAttribute('role', 'alert');
+        alertDiv.innerHTML = message + 
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+        
+        document.querySelector('.modal-body').prepend(alertDiv);
+        
+        // Auto dismiss after 5 seconds
+        setTimeout(function() {
+            alertDiv.remove();
+        }, 5000);
+    }
+    
+    function renameFile() {
+        var formData = new FormData(document.getElementById('renameForm'));
+        
+        fetch('/rename', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showRenameAlert('success', data.message);
+                setTimeout(function() {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                showRenameAlert('danger', data.message);
+            }
+        })
+        .catch(error => {
+            showRenameAlert('danger', 'Erro ao renomear arquivo: ' + error);
+        });
+    }
+    </script>'''
+    
     PAGE_SCRIPT += '''<script>filterSelection("all");function filterSelection(c) {  var x, i;  x = document.getElementsByClassName("column000");  if (c == "all") c = "";  for (i = 0; i < x.length; i++) {    w3RemoveClass(x[i], "show000");    if (x[i].className.indexOf(c) > -1) w3AddClass(x[i], "show000");  }}function w3AddClass(element, name) {  var i, arr1, arr2;  arr1 = element.className.split(" ");  arr2 = name.split(" ");  for (i = 0; i < arr2.length; i++) {    if (arr1.indexOf(arr2[i]) == -1) {      element.className += " " + arr2[i];    }  }}function w3RemoveClass(element, name) {  var i, arr1, arr2;  arr1 = element.className.split(" ");  arr2 = name.split(" ");  for (i = 0; i < arr2.length; i++) {    while (arr1.indexOf(arr2[i]) > -1) {      arr1.splice(arr1.indexOf(arr2[i]), 1);    }  }  element.className = arr1.join(" ");} '''
-    PAGE_SCRIPT += '''function ImageToModal(id) { document.getElementById("imgmodal1").src=document.getElementById("img" + id).src; }'''
+    
+    PAGE_SCRIPT += '''var fileNames = {};'''
+    PAGE_SCRIPT += '''var fileExts = {};'''
+    
+    idcount = 0
+    for _localfile in files:
+        idcount = idcount + 1
+        name = os.path.splitext(os.path.basename(_localfile))[0]
+        filetype = _localfile.split(".")[-1]
+        
+        # Store the file name and extension for the renaming functionality
+        PAGE_SCRIPT += '''fileNames[''' + str(idcount) + '''] = "''' + name + '''";'''
+        PAGE_SCRIPT += '''fileExts[''' + str(idcount) + '''] = "''' + filetype + '''";'''
+    
+    PAGE_SCRIPT += '''function ImageToModal(id) { 
+        document.getElementById("imgmodal1").src=document.getElementById("img" + id).src;
+        document.getElementById("fileName").value = fileNames[id];
+        document.getElementById("oldFileName").value = fileNames[id];
+        document.getElementById("fileExt").value = fileExts[id];
+        document.getElementById("modalTitle").textContent = fileNames[id] + "." + fileExts[id];
+        
+        // Reset edit form state
+        var form = document.getElementById('renameForm');
+        var editButton = document.getElementById('editButton');
+        var saveButton = document.getElementById('saveButton');
+        
+        form.style.display = 'none';
+        editButton.classList.remove('btn-secondary');
+        editButton.classList.add('btn-warning');
+        editButton.textContent = 'Editar';
+        saveButton.style.display = 'none';
+    }'''
     PAGE_SCRIPT += '''function SearchFunction(){var searchvalue = document.getElementById('search_input').value; filterSelection(searchvalue);}</script>'''
 
     PAGE_MENU = '<nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse"><div class="position-sticky pt-3"><ul class="nav flex-column"><li class="nav-item"><a class="nav-link active" aria-current="page" href="' + str(request.url_root) + 'table"><span data-feather="home"></span>Table</a></li><li class="nav-item"><a class="nav-link" href="' + str(request.url_root) + 'gallery"><span data-feather="file"></span>Gallery</a></li></ul></div></nav>'
@@ -230,7 +484,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=Main.__doc__)
     parser.add_argument('-d','--description', help='Description of program', action='store_true')
     parser.add_argument('-u','--tests', help='Execute tests', action='store_true')
-    parser.add_argument('-t','--target', help='Path target (use fullpath)')
+    parser.add_argument('-t','--target', help='Path target')
     parser.add_argument('-p','--port', help='Service running in target port')
     parser.add_argument('-i','--ip', help='Service running in target ip')
     parser.add_argument('-c','--config', help='Config.ini file')
@@ -272,4 +526,3 @@ if __name__ == '__main__':
     param = ' '.join(unknown)
 
     Main()
-    
