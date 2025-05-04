@@ -1,5 +1,6 @@
 import time
 import json
+import glob
 import sys,os
 import subprocess
 import argparse
@@ -10,6 +11,7 @@ import socket
 import requests
 import bs4
 import requests
+import random
 from jarvis_utils import *
 
 from telegram import Update, ForceReply,ReplyKeyboardRemove
@@ -31,10 +33,7 @@ globalParameter['Token'] = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 globalParameter['AllowedUser'] = None
 globalParameter['configFile'] = "config.ini"
 globalParameter['allowedexternalrecordbase'] = "telegram"
-
-globalParameter['TypeTagPhotoOrDocs'] = "[raw]" #"[file]" 
-globalParameter['TypeTagVideo'] = "[raw]"
-globalParameter['TypeTagLink'] = "[jsonlinkfile]" #"[jsonlink]" 
+globalParameter['maximumfileupload'] = '5'
 
 globalParameter['PINTEREST_IMAGECLASS'] = 'hCL kVc L4E MIw'
 
@@ -269,6 +268,79 @@ def define_base_tag(update: Update, context: CallbackContext) -> int:
     update.message.reply_text(res)
     return DEFAULT
 
+def search_command(update: Update, context: CallbackContext) -> None:
+    """Search for files with specified tags and return examples."""
+    # Verifica se a mensagem contém tags após o comando
+    if not context.args:
+        update.message.reply_text('Please, use: /search <tags>')
+        return
+
+    # Obtém as tags da pesquisa
+    search_tags = ' '.join(context.args).lower()
+    print(f"Searching for: {search_tags}")
+    
+    # Diretório onde os arquivos estão armazenados
+    search_dir = os.path.join(globalParameter['PathDB_All'], globalParameter['allowedexternalrecordbase'])
+    
+    if not os.path.exists(search_dir):
+        update.message.reply_text(f"Path dont find: {search_dir}")
+        return
+    
+    # Lista todos os arquivos no diretório
+    all_files = glob.glob(os.path.join(search_dir, "*"))
+    
+    # Filtra os arquivos que contêm as tags
+    matches = []
+    for file_path in all_files:
+        file_name = os.path.basename(file_path).lower()
+        if search_tags in file_name:
+            matches.append(file_path)
+    
+    if not matches:
+        update.message.reply_text(f"No files found with tags: {search_tags}")
+        return
+    
+    update.message.reply_text(f"Found {len(matches)} file(s) with tags: {search_tags}.")
+
+    if len(matches) > int(globalParameter['maximumfileupload']):
+        matches = random.sample(matches, int(globalParameter['maximumfileupload']))
+        update.message.reply_text(f"I will send {len(matches)} examples.")
+
+    # Envia cada arquivo encontrado
+    for file_path in matches:
+        file_name = os.path.basename(file_path)
+        file_extension = os.path.splitext(file_path)[1].lower()
+        
+        try:
+            # Para arquivos de imagem
+            if file_extension in ['.jpg', '.jpeg', '.png', '.gif']:
+                with open(file_path, 'rb') as photo_file:
+                    update.message.reply_photo(photo=photo_file, caption=file_name)
+            
+            # Para arquivos de vídeo
+            elif file_extension in ['.mp4', '.avi', '.mov', '.mkv']:
+                with open(file_path, 'rb') as video_file:
+                    update.message.reply_video(video=video_file, caption=file_name)
+            
+            # Para arquivos JSON (links)
+            elif file_extension == '.json':
+                with open(file_path, 'r') as f:
+                    data = json.load(f)
+                    if 'link' in data:
+                        update.message.reply_text(f"{file_name}\nLink: {data['link']}")
+                    else:
+                        update.message.reply_document(document=open(file_path, 'rb'), caption=file_name)
+            
+            # Para outros tipos de arquivo
+            else:
+                with open(file_path, 'rb') as doc_file:
+                    update.message.reply_document(document=doc_file, caption=file_name)
+                    
+        except Exception as e:
+            update.message.reply_text(f"Error sending file {file_name}: {str(e)}")
+    
+    update.message.reply_text("Enjoy!")
+
 def cancel(update: Update, context: CallbackContext) -> int:
     """Cancels and ends the conversation."""
     user = update.message.from_user
@@ -301,6 +373,7 @@ def Main():
     dispatcher = updater.dispatcher
     
     if(False):
+        #only for example proposal 
         conv_handler = ConversationHandler(
             entry_points=[MessageHandler(Filters.text & ~Filters.command, bot), CommandHandler('start', start)],
             states={
@@ -327,7 +400,13 @@ def Main():
                             MessageHandler(Filters.text & ~Filters.command & Filters.user(username=globalParameter['AllowedUser']), bot)],
                     TAGS: [MessageHandler(Filters.text & ~Filters.command & Filters.user(username=globalParameter['AllowedUser']), define_base_tag), CommandHandler('skip', cancel, Filters.user(username=globalParameter['AllowedUser']))],
                 },
-                fallbacks=[CommandHandler('cancel', cancel, Filters.user(username=globalParameter['AllowedUser'])), CommandHandler('skip', cancel, Filters.user(username=globalParameter['AllowedUser'])), CommandHandler('ip', ip, Filters.user(username=globalParameter['AllowedUser']))],
+                fallbacks=[
+                    CommandHandler('cancel', cancel, Filters.user(username=globalParameter['AllowedUser'])), 
+                    CommandHandler('skip', cancel, Filters.user(username=globalParameter['AllowedUser'])), 
+                    CommandHandler('ip', ip, Filters.user(username=globalParameter['AllowedUser'])),
+                    CommandHandler('search', search_command, Filters.user(username=globalParameter['AllowedUser']))
+                ],
+                    
             )
 
     dispatcher.add_handler(conv_handler)    
