@@ -30,6 +30,8 @@ globalParameter['LastCommand'] = ''
 globalParameter['Token'] = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 globalParameter['AllowedUser'] = None
 globalParameter['configFile'] = "config.ini"
+globalParameter['allowedexternalrecordbase'] = "telegram"
+
 globalParameter['TypeTagPhotoOrDocs'] = "[raw]" #"[file]" 
 globalParameter['TypeTagVideo'] = "[raw]"
 globalParameter['TypeTagLink'] = "[jsonlinkfile]" #"[jsonlink]" 
@@ -191,7 +193,7 @@ def document(update: Update, context: CallbackContext) -> int:
     return TAGS    
 
 def link(update: Update, context: CallbackContext) -> int:
-    """Check\Stores the link and asks for a base|tags."""
+    """Check-Stores the link and asks for a base-tags."""
     user = update.message.from_user
     text = update.message.text + str(' ')
 
@@ -224,19 +226,43 @@ def define_base_tag(update: Update, context: CallbackContext) -> int:
 
     cmd = update.message.text
     res = "..."
+
     if 'fileids' in context.user_data:
         for fileid, _type in context.user_data['fileids']:
             print([fileid,_type])
-            if(_type == "doc" or _type == "photo"):
-                cmd = globalParameter['TypeTagPhotoOrDocs'] + " " + fileid + " [base|tags] " + update.message.text
-            elif(_type == "video"):
-                cmd = globalParameter['TypeTagVideo'] + " " + fileid + " [base|tags] " + update.message.text
+
+            tags = str(update.message.text)
+            localpath = os.path.join(globalParameter['PathDB_All'], globalParameter['allowedexternalrecordbase'])            
+            id_unique = str(datetime.datetime.now().strftime("%Y%m%d")) + " " + str(datetime.datetime.now().strftime("%H%M%S%f"))  + " " + str(randint(0, 999))
+
+            if(_type == "doc" or _type == "photo" or _type == "video"):
+                extension = os.path.splitext(fileid)[1]
+                file = os.path.join(localpath, tags + " " + id_unique + extension)
+                
+                if(os.path.exists(localpath) == False):
+                    os.mkdir(localpath)
+
+                f = open(file,'wb')
+                response = requests.get(fileid)
+                f.write(response.content)
+                f.close()    
+
             elif(_type == "link"):
-                cmd = globalParameter['TypeTagLink'] + " " + fileid + " [base|tags] " + update.message.text                
+                file = os.path.join(localpath, tags + " " + id_unique + '.json')
+
+                if(os.path.exists(localpath) == False):
+                    os.mkdir(localpath)
+
+                data = { 'link' :  fileid }
+
+                print(file)
+                f = open(file,'w')
+                json.dump(data, f, ensure_ascii=False, indent=4)
+                f.close()
             else:
                 continue
             print(cmd)
-            res = ChatBot(cmd)
+            res = 'got it!!!'
             print('bot:' + res)
     context.user_data['fileids'].clear()
     context.user_data['media_group_id'] = None
