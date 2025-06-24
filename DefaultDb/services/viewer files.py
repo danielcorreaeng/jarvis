@@ -196,6 +196,19 @@ def makeTable():
     PAGE_SCRIPT += '''var fileNames = {};'''
     PAGE_SCRIPT += '''var fileExts = {};'''
 
+    # Função auxiliar para escapar strings JavaScript
+    def escape_js_string(s):
+        """Escapa strings para uso seguro em JavaScript"""
+        if s is None:
+            return ''
+        return (str(s)
+                .replace('\\', '\\\\')
+                .replace("'", "\\'")
+                .replace('"', '\\"')
+                .replace('\n', '\\n')
+                .replace('\r', '\\r')
+                .replace('\t', '\\t'))
+
     idcount = 0
     for _localfile in files:
         idcount = idcount + 1
@@ -203,50 +216,58 @@ def makeTable():
         filetype = _localfile.split(".")[-1]
         filepath = request.url_root + 'External/' + os.path.basename(_localfile)
         
+        # Escapar os nomes dos arquivos para JavaScript
+        name_escaped = escape_js_string(name)
+        filepath_escaped = escape_js_string(filepath)
+        
         # Store the file name and extension for the renaming functionality
-        PAGE_SCRIPT += '''fileNames[''' + str(idcount) + '''] = "''' + name + '''";'''
-        PAGE_SCRIPT += '''fileExts[''' + str(idcount) + '''] = "''' + filetype + '''";'''
+        PAGE_SCRIPT += '''fileNames[''' + str(idcount) + '''] = "''' + name_escaped + '''";'''
+        PAGE_SCRIPT += '''fileExts[''' + str(idcount) + '''] = "''' + escape_js_string(filetype) + '''";'''
 
         if(filetype.lower() == "mp4"):
-            PAGE_SCRIPT += '''dict[''' + str(idcount) + '''] = '<video width="100%" controls><source src="''' + filepath +  '''" type="video/mp4">Error =S</video>';'''
+            PAGE_SCRIPT += '''dict[''' + str(idcount) + '''] = '<video width="100%" controls><source src="''' + filepath_escaped +  '''" type="video/mp4">Error =S</video>';'''
         elif(filetype.lower() == 'png' or  filetype.lower() == 'jpg'  or  filetype.lower() == 'jpeg'  or  filetype.lower() == 'gif'):
-            PAGE_SCRIPT += '''dict[''' + str(idcount) + '''] = '<img id="img''' + str(idcount) + '''" style="width:100%" src="''' + filepath +  '''">';'''
+            PAGE_SCRIPT += '''dict[''' + str(idcount) + '''] = '<img id="img''' + str(idcount) + '''" style="width:100%" src="''' + filepath_escaped +  '''">';'''
         elif(filetype.lower() == 'json'):
             try:
                 data = ''
-                with open(_localfile) as json_file:
+                with open(_localfile, 'r', encoding='utf-8') as json_file:
                     data = json.load(json_file)
                     print(data)               
 
-                #form = "<form  action='" + str(request.base_url) + "/response' method='post'>"
-                #form = "<form action='" + str(request.url_root) + "update' method='post'>"
                 form = "<form>"
-                form += "<input type='hidden' name='id_name' value='"+ str(name) + "'>"
+                form += "<input type='hidden' name='id_name' value='"+ escape_js_string(name) + "'>"
                 
                 for key in data:
-                        value = data[key]
-                        form += """<div class='form-group'>"""                            
-                        form += """<label for=""" + str(key) + """>""" + str(key) + """:</label>"""
-                        form += """<div class='input-group'>"""                        
+                    value = data[key]
+                    key_escaped = escape_js_string(key)
+                    value_escaped = escape_js_string(value)
+                    
+                    form += """<div class='form-group'>"""                            
+                    form += """<label for=""" + key_escaped + """>""" + key_escaped + """:</label>"""
+                    form += """<div class='input-group'>"""                        
 
-                        if(key == "link"):
-                            if 'http' not in value:
-                                value = "http://" + str(value)
-                            form += """<div class='input-group-prepend'>"""
-                            form += """<a href='""" + str(value) + """' target='_blank'><button class='btn btn-outline-secondary' type='button'>Link</button></a>"""
-                            form += """</div>"""
-
-                        form += """<input type='input' class='form-control' name='""" + str(key) + """' id='""" + str(key) + """' value='""" + str(value) + """'>"""
-
+                    if(key == "link"):
+                        if 'http' not in str(value):
+                            value = "http://" + str(value)
+                            value_escaped = escape_js_string(value)
+                        form += """<div class='input-group-prepend'>"""
+                        form += """<a href='""" + value_escaped + """' target='_blank'><button class='btn btn-outline-secondary' type='button'>Link</button></a>"""
                         form += """</div>"""
-                        form += """</div><br>&nbsp<br>"""
+
+                    form += """<input type='input' class='form-control' name='""" + key_escaped + """' id='""" + key_escaped + """' value='""" + value_escaped + """'>"""
+
+                    form += """</div>"""
+                    form += """</div><br>&nbsp<br>"""
                 form += "</form>"
 
-                PAGE_SCRIPT += '''dict[''' + str(idcount) + '''] = "''' + form + '''";'''
+                # Escapar o HTML do formulário para JavaScript
+                form_escaped = escape_js_string(form)
+                PAGE_SCRIPT += '''dict[''' + str(idcount) + '''] = "''' + form_escaped + '''";'''
                 
-
-            except:
-                pass
+            except Exception as e:
+                print(f"Erro ao processar arquivo JSON {_localfile}: {e}")
+                PAGE_SCRIPT += '''dict[''' + str(idcount) + '''] = "Erro ao carregar arquivo JSON";'''
         else:
             PAGE_SCRIPT += '''dict[''' + str(idcount) + '''] = "Formato não suportado";'''
 
