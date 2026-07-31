@@ -20,6 +20,7 @@ globalParameter['MAINLOOP_SLEEP_SECONDS'] = 600.0
 globalParameter['PROCESS_JARVIS'] = None
 
 globalParameter['CriticalServices'] = ['chatbot -base=services', 'datalogger -base=services']
+globalParameter['ErrorHandlerOutput'] = "error handler -base=services"
 
 class TestCases_Local(TestCases):
     def test_dump(self):
@@ -103,7 +104,7 @@ def makeTable():
 def mainThread2():
     global globalParameter
 
-    jarvis_cmd = 'error handler ' + globalParameter['LocalUsername'] + '@' + globalParameter['LocalHostname'] + ' public ip : ' + globalParameter['PublicIp'] + ', local ip : ' + globalParameter['LocalIp'] + '' + ' warning Controller is alive'
+    jarvis_cmd = globalParameter['ErrorHandlerOutput'] + ' controller - ' + globalParameter['LocalUsername'] + '@' + globalParameter['LocalHostname'] + ' public ip : ' + globalParameter['PublicIp'] + ', local ip : ' + globalParameter['LocalIp'] + '' + ' warning Controller is alive'
     print(jarvis_cmd)
     RunJarvis(jarvis_cmd, None, False)    
 
@@ -129,7 +130,7 @@ def mainLoopProcess2(input_data):
             
             if(alive == False):
                 print(process_arg_target + ' is dead')
-                RunJarvis('error handler ' + globalParameter['LocalUsername'] + '@' + globalParameter['LocalHostname'] + ' error ' + process_arg_target.replace("-base=", "in base ") + ' host:' + globalParameter['LocalHostname'] + '', None, False)   
+                RunJarvis(globalParameter['ErrorHandlerOutput'] + ' controller - ' + globalParameter['LocalUsername'] + '@' + globalParameter['LocalHostname'] + ' error ' + process_arg_target.replace("-base=", "in base ") + ' host:' + globalParameter['LocalHostname'] + '', None, False)   
                 
                 #reopen apps local
                 print('reopen ' + process_arg_target)
@@ -140,10 +141,10 @@ def mainLoopProcess2(input_data):
                 alive, method = CheckProcess("python", process_arg_target)
                 if(alive == False):
                     print(process_arg_target + ' is real dead')
-                    RunJarvis('error handler ' + globalParameter['LocalUsername'] + '@' + globalParameter['LocalHostname'] + ' it did not open ' + process_arg_target.replace("-base=", "in base ") + ' host:' + globalParameter['LocalHostname'] + '', None, False)   
+                    RunJarvis(globalParameter['ErrorHandlerOutput'] + ' controller - ' + globalParameter['LocalUsername'] + '@' + globalParameter['LocalHostname'] + ' it did not open ' + process_arg_target.replace("-base=", "in base ") + ' host:' + globalParameter['LocalHostname'] + '', None, False)   
                 else:
                     print(process_arg_target + ' is alive now')
-                    RunJarvis('error handler ' + globalParameter['LocalUsername'] + '@' + globalParameter['LocalHostname'] + ' it is alive now ' + process_arg_target.replace("-base=", "in base ") + ' host:' + globalParameter['LocalHostname'] + '', None, False)   
+                    RunJarvis(globalParameter['ErrorHandlerOutput'] + ' controller - ' + globalParameter['LocalUsername'] + '@' + globalParameter['LocalHostname'] + ' it is alive now ' + process_arg_target.replace("-base=", "in base ") + ' host:' + globalParameter['LocalHostname'] + '', None, False)   
 
     return result
 

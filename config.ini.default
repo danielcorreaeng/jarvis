@@ -10,9 +10,11 @@ HideDatabase=hackertools,xxx,telegram
 allowedexternalrecordbase=telegram
 
 [CriticalServices]
-bla1=viewer -base=services -t imagens -p 8850
+bla1=viewer files -base=services -t C:\jarvis\DefaultDb\images -p 8850
 
 [Telegram]
 token=xxxx
 alloweduser=@xxxx
 
+[GPT]
+openai_api=xxxx
