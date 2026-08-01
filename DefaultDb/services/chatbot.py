@@ -45,7 +45,7 @@ globalParameter['TriggerTagsList'] = []
 globalParameter['BotIp4Learn'] = None
 globalParameter['BotName'] = 'Jarvis'
 
-#chatbot jarvis updated Abril 15, 2025 - https://github.com/danielcorreaeng/jarvis
+#chatbot jarvis updated July 30, 2026 - https://github.com/danielcorreaeng/jarvis
 
 app = Flask(__name__, static_url_path="/" + globalParameter['flaskstatic_folder'], static_folder=globalParameter['flaskstatic_folder'])
 CORS(app)

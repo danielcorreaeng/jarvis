@@ -9,10 +9,18 @@ import getpass
 import datetime
 import socket
 import requests
-import bs4
-import requests
 import random
+import re
 from jarvis_utils import *
+
+# This machine's IPv6 route to api.telegram.org (and possibly other dual-stack
+# hosts) is dead and times out after ~5s before falling back to IPv4, which was
+# causing telegram.error.TimedOut on every request. Force IPv4-only DNS
+# resolution so connections skip the dead route.
+_orig_getaddrinfo = socket.getaddrinfo
+def _ipv4_only_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+    return _orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+socket.getaddrinfo = _ipv4_only_getaddrinfo
 
 from telegram import Update, ForceReply,ReplyKeyboardRemove
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler
@@ -35,18 +43,20 @@ globalParameter['configFile'] = "config.ini"
 globalParameter['allowedexternalrecordbase'] = "telegram"
 globalParameter['maximumfileupload'] = '5'
 
-globalParameter['PINTEREST_IMAGECLASS'] = 'hCL kVc L4E MIw'
+globalParameter['PINTEREST_IMAGE_THUMB_RE'] = r'https://i\.pinimg\.com/736x/([a-zA-Z0-9/]+\.(?:jpg|jpeg|png|gif))'
 
 DEFAULT, TAGS = range(2)
 
 def get_link_from_url_pinterest(link):
+    # Pinterest's pin pages are client-rendered (no <img> tags in the raw HTML),
+    # but a 736x thumbnail URL for the pin's image is embedded in the page's
+    # inline JSON. Swapping "736x" for "originals" gives the full-res image.
     with requests.Session() as s:
         html_page = s.get(link,headers={"User-Agent":"Mozilla/5.0"})
-        soup = bs4.BeautifulSoup(html_page.text,'html.parser')
+        match = re.search(globalParameter['PINTEREST_IMAGE_THUMB_RE'], html_page.text)
+        link = 'https://i.pinimg.com/originals/' + match.group(1) if match else None
 
-        link = soup.find("img", class_=globalParameter['PINTEREST_IMAGECLASS']).get('src')
-
-    return link   
+    return link
 
 def ChatBot(message):
     error = 'Hi! Sorry... No service now =('
@@ -367,27 +377,11 @@ def Main():
         print('error ip')
 
     # Create the Updater and pass it your bot's token.
-    updater = Updater(globalParameter['Token'])
+    updater = Updater(globalParameter['Token'], request_kwargs={'connect_timeout': 20, 'read_timeout': 20})
 
     # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher
     
-    if(False):
-        #only for example proposal 
-        conv_handler = ConversationHandler(
-            entry_points=[MessageHandler(Filters.text & ~Filters.command, bot), CommandHandler('start', start)],
-            states={
-                DEFAULT: [
-                        MessageHandler(Filters.photo, photo),
-                        MessageHandler(Filters.document, document),
-                        MessageHandler(Filters.video, videos),
-                        MessageHandler(Filters.entity('url'), link),
-                        MessageHandler(Filters.text & ~Filters.command, bot)],
-                TAGS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag), CommandHandler('skip', cancel)],
-            },
-            fallbacks=[CommandHandler('cancel', cancel), CommandHandler('skip', cancel)],
-        )
-
     if(globalParameter['AllowedUser'] != None):
             conv_handler = ConversationHandler(
                 entry_points=[MessageHandler(Filters.text & ~Filters.command & Filters.user(username=globalParameter['AllowedUser']), start), CommandHandler('start', start, Filters.user(username=globalParameter['AllowedUser']))],
@@ -410,26 +404,6 @@ def Main():
             )
 
     dispatcher.add_handler(conv_handler)    
-
-    '''
-    # on different commands - answer in Telegram
-    if(globalParameter['AllowedUser'] == None):
-        dispatcher.add_handler(CommandHandler("start", start))
-    else:
-        dispatcher.add_handler(CommandHandler("start", start, Filters.user(username=globalParameter['AllowedUser'])))
-
-    dispatcher.add_handler(CommandHandler("help", help_command))
-
-    # on non command i.e message - echo the message on Telegram
-
-    if(globalParameter['AllowedUser'] == None):
-        dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, bot))
-    else:
-        dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command & Filters.user(username=globalParameter['AllowedUser']), bot))
-        dispatcher.add_handler(MessageHandler(Filters.photo & Filters.user(username=globalParameter['AllowedUser']), photo ))
-
-    dispatcher.add_handler(states={ TAGS: [MessageHandler(Filters.text & ~Filters.command, define_base_tag)], })
-    '''
 
     # Start the Bot
     updater.start_polling()
